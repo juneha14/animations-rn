@@ -1,0 +1,159 @@
+# Basics of React Native Animations 
+
+- React Native comes with built-in `Animated` library
+    - Runs animations on the UI thread -> smooths out performance 
+    - Running animations on JS thread causes performance issues since the JS thread can be busy with other tasks (e.g. fetching from the network)
+    - Animated is built so that we can improve the performance even more by using a concept known as 'native driven animation'
+        - This makes animations run on the UI thread directly 
+
+    - Do NOT use state properties for animations (slow, runs on the JS thread)
+    - Instead, use Animated and Animated.Value
+
+const App = () => {
+    const translation = useRef(new Animated.Value(0)).current
+
+    useEffect(() => {
+       // Animated.timing animates an animated value over time 
+       Animated.timing(translation, { 
+           toValue: 50, 
+           useNativeDriver: true, // Setting this property makes animations run on the UI thread directly (i.e. optimized animation)
+       }).start();
+    }, [])
+
+    return (
+        <Animated.View style={{
+            width: 100, 
+            height: 100, 
+            backgroundColor: 'yellow', 
+            transform: [{ translateX: translation }]
+        }} 
+        />
+    )
+}
+
+
+# Animation types 
+
+-  import { Easing } from 'react-native'
+    - Easing function specify the rate of change of a parameter over time
+    - Timed animations use easing functions to know how to animate a value over time (ease-in-out, linear, etc.)
+    - Go through API docs to pick the right function to bring the right feeling to someone  
+        - What's important is to understand how an animation feeling is correlated to how it moves over time 
+
+- Animated.spring , Animated.timing 
+    - You can pretty much create most animations that you see in every-day applications 
+
+
+# Animation Composition 
+
+- Sometimes we will need to run one animation after the other (sequence), or run two of them at the same time (parallel), or run animations sequentially with a delay in between each (stagger)
+    - Use `Animated.sequence` or `Animated.parallel` or `Animated.stagger` 
+
+const App = () => {
+    const translation = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current
+
+    useEffect(() => {
+        Animated.spring(translation.x, { 
+            toValue: 100, 
+            useNativeDriver: true, 
+        }),
+
+        Animated.sequence([
+            Animated.spring(translation.y, { 
+                toValue: 100, 
+                useNativeDriver: true, 
+            })
+        ]).start();
+    }, [])
+
+    return (
+        <Animated.View style={{
+            width: 100, 
+            height: 100, 
+            backgroundColor: 'yellow', 
+            transform: [{ translateX: translation.x, translateY: translation.y }]
+        }} />
+    )
+}
+
+
+# Interpolation 
+
+- Interpolation provides a means of estimating the function at intermediate points, learning from the ranges that you provide
+- With interpolation, we can figure out the intermediate values for a function without explicitly knowing what the function is 
+
+- Let's take an example where we want to animate a square moving horizontally while also change its opacity and rotating it 
+    - Problem is that we cannot set the `opacity` to our existing `translation` value since opacity only goes from 0-1 (and not 0-100)
+
+    - Let's take advantage of interpolation here:
+        - When translation's value changes from 0 to 100, we want to interpolate this value from 0 to 1 
+
+        x    |   0   |   100
+        f(x) |   0   |    1 
+
+        - Then through interpolation, we can say that if x=50, then f(x)=0.5
+
+        x    |   0   |   50   |   100
+        f(x) |   0   |   0.5  |    1 
+
+        - We can interpolate any Animated.value by using `.interpolate({})`
+            - It maps an input range to values from an output range (numbers, colors, degrees, etc.)
+            - .interpolate needs 2 values: 
+                1. inputRange (our x)
+                2. outputRange (our f(x))
+
+const App = () => {
+    const translation = useRef(new Animated.Value(0)).current
+
+    useEffect(() => {
+       Animated.timing(translation, { 
+           toValue: 100, 
+           duration, 1000,
+           useNativeDriver: true, 
+       }).start();
+    }, [])
+
+    return (
+        <Animated.View style={{
+            width: 100, 
+            height: 100, 
+            backgroundColor: 'yellow', 
+            opacity: translation.interpolate({
+                inputRange: [0, 50, 100], 
+                outputRange: [0, 1, 0],
+            }),
+            transform: [
+                { translateX: translation }, 
+                { rotate: translation.interpolate({
+                    inputRange: [0, 100], 
+                    outputRange: ['0deg', '360deg']
+                }) }, 
+            ]
+        }} 
+        />
+    )
+}
+
+
+# Extrapolation 
+
+- Let's consider a case where we want to change the opacity only when translation reaches 25 pixels 
+    - The issue now is that our input range (25 to 100) does not cover the whole range of values transition can take (which is from 0 to 100)
+    - If we run this, then we might see weird results, since RN by default will try to extend our range and guess what the value could be when the translation is between 0 and 25
+
+translation    |   ?       |   -    |    -    |    -    |  ? 
+input range    |   clamp   |   25   |   50    |   100   |  clamp
+output range   |   clamp   |   0    |    1    |    0    |  clamp
+
+- Solution would be to clamp our ranges 
+    - This means that whatever comes before the desired range, we'll keep the last given value 
+    - In our example, anything below 25 will be 0, and anything above 100 will be also be 0
+
+    opacity: translation.interpolate({
+        inputRange: [25, 50, 100], 
+        outputRange: [0, 1, 0],
+        
+        extrapolate: 'clamp', // clamps on both left and right,
+        extrapolateRight: 'clamp',
+        extrapolateLeft: 'clamp',
+    }),
