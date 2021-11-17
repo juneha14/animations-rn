@@ -1,4 +1,3 @@
-import { AnimatedScrollView_Optimized } from "./src/Fundamentals/Animated/AnimatedScrollView";
-import { BasicGesture } from "./src/Fundamentals/Animated/BasicGesture";
+import { AdvancedGesture_PanAndScaleImage } from "./src/Fundamentals/Animated/AdvancedGesture";
 
-export default BasicGesture;
+export default AdvancedGesture_PanAndScaleImage;
