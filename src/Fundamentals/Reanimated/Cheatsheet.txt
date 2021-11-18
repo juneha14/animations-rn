@@ -1,0 +1,199 @@
+## Shared Values
+
+- Remember, do not use state (i.e. useState) to animate a View 
+    - Using state runs on the JS thread - which means that if our app is busy fetching data, loading a screen, or using a low-end device, the animation will be slow
+    - We can solve this by sending all animation logic to the UI thread
+
+- Worklets
+    - Reanimated concept where JS code actually runs on the UI thread 
+    - Any function that starts with keyword 'worklet' will be run on the UI thread 
+
+    // This function runs on the JS thread
+    const sayHello = () => {
+        console.log("Hello);
+    }
+
+    // This function runs on the UI thread
+    const sayHello = () => {
+        'worklet';
+        console.log("Hello);
+    }
+
+- useSharedValue hook
+    - Reanimated's way of allowing us to have a state that lives on the UI thread 
+    - Called 'shared' value since it's created on the JS thread but is sent to the UI thread
+    - Under the hood, it creates a worklet for useState
+    
+
+## Animated Style 
+
+- useAnimatedStyle hook 
+    - Takes a function that returns a style object
+
+    const animatedStyle = useAnimatedStyle(() => {
+        return {
+            opacity: opacity.value
+        }
+    })
+
+    - Every style that won't animate can be created with a plain RN StyleSheet
+    - However, if the style property changes based on a shared value, then style needs to be created using useAnimatedStyle hook
+
+- Interpolation
+    
+    const animatedStyle = useAnimatedStyle(() => {
+        return {
+            opacity: opacity.value
+            transform: [
+                {
+                    scale: interpolate(
+                        opacity.value, 
+                        [0, 1],
+                        [0.5, 1],
+                    )
+                }
+            ]
+        }
+    })
+
+
+## Animations
+
+- See https://docs.swmansion.com/react-native-reanimated/docs/api/animations/withTiming/
+
+
+## Shared Values vs. Animated.Value
+
+- Payload:
+    - AV: Only numeric and string values are supported
+    - SV: Any primitive or nested data structure (like objects, arrays, strings, numbers, booleans)
+
+- Connecting with View's props:
+    - AV: By passing Animated.Value directly as a prop
+    - SV: Cannot be directly hooked as View's props. Use instead the useAnimatedStyle or useAnimatedProps where you can access shared values and return them as styles/props or process them to calculate the styles
+
+- Updating values:
+    - AV: Using value.setValue() method. This is async.
+    - SV: Update .value property. This is sync when running on UI, or async when running on JS
+
+- Reading values:
+    - AV: Register listener with value.addListener() to get all animated value updates
+    - SV: Read .value property  
+
+- Running animations: 
+    - AV: Use Animated.spring, Animated.timing and call .start()
+    - SV: Update .value property as usual while wrapping the target with one of the animation utility methods (e.g. withTiming, withSpring, etc)
+
+- Stopping animations:
+    - AV: Hold reference to the animation object returned by Animated.timing and call stopAnimation() method
+    - SV: Use cancelAnimation() method and pass the shared value that runs the animation 
+
+
+import Animated, { useSharedValue, withTiming } from 'react-native-reanimated'
+
+export default () => {
+    const opacity = useSharedValue(0);
+
+    const animatedStyle = useAnimatedStyle(() => {
+        return {
+            opacity: opacity.value
+            transform: [
+                {
+                    scale: interpolate(
+                        opacity.value, 
+                        [0, 1],
+                        [0.5, 1],
+                    )
+                }
+            ]
+        }
+    });
+
+    useEffect(() => {
+        opacity.value = withTiming(1, {
+            duration: 1000,
+        });
+    }, [])
+
+    return (
+        <Animated.View style={[styles.circle, animatedStyle]} />
+    )
+}
+
+
+## Gestures
+
+- For animating views, use Reanimated library
+- To handle gestures, use React Native Gesture Handler library 
+
+
+import Animated, {
+  useSharedValue,
+  useAnimatedGestureHandler,
+  useAnimatedScrollHandler,
+  interpolateColor,
+  useAnimatedStyle,
+  withSpring,
+} from "react-native-reanimated";
+import { PanGestureHandler } from "react-native-gesture-handler";
+
+export default = () => {
+  const touchX = useSharedValue(0);
+  const touchY = useSharedValue(0);
+  const scrollY = useSharedValue(0);
+
+  const gestureHandler = useAnimatedGestureHandler({
+    onActive: (event) => {
+      touchX.value = event.translationX;
+      touchY.value = event.translationY;
+    },
+    onEnd: () => {
+      touchX.value = withSpring(0);
+      touchY.value = withSpring(0);
+    },
+  });
+
+  const scrollHandler = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      backgroundColor: scrollY.value > 10 ? "grey" : "orange",
+      transform: [{ translateX: touchX.value }, { translateY: touchY.value }],
+    };
+  });
+
+  const scrollViewAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      backgroundColor: interpolateColor(
+        scrollY.value,
+        [-50, 0, 50],
+        [
+          "rgb(10, 10, 10)", // gray
+          "rgb(255, 255, 255)", // white
+          "rgb(10, 10, 10)", // gray
+        ]
+      ),
+    };
+  });
+
+  return (
+    <Animated.ScrollView
+      onScroll={scrollHandler}
+      style={[{ flex: 1 }, scrollViewAnimatedStyle]}
+      contentContainerStyle={{
+        height: "100%",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+      showsVerticalScrollIndicator
+    >
+      <PanGestureHandler onGestureEvent={gestureHandler}>
+        <Animated.View
+          style={[{ width: 50, height: 50, borderRadius: 25 }, animatedStyle]}
+        />
+      </PanGestureHandler>
+    </Animated.ScrollView>
+  );
+};
