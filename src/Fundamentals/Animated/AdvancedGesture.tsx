@@ -72,7 +72,7 @@ export const AdvancedGesture_PanAndScaleImage: React.FC = () => {
           // Idea is that if we pinch our fingers half the screen's width, then image should scale by 50%
           const screenMovedPercents = distance / dimensions.width;
 
-          // Add to base 1 so that if we pinchh 50%, then we want our scaling factor to be 1.5
+          // Add to base 1 so that if we pinch 50%, then we want our scaling factor to be 1.5
           scale.setValue(1 + screenMovedPercents);
         }
       },

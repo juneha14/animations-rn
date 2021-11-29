@@ -1,3 +1,3 @@
-import { PanGestureHandler_Basics } from "./src/Fundamentals/Reanimated/PanGestureHandler";
+import { PinchGestureHandler_Basics } from "./src/Fundamentals/Reanimated/PinchGestureHandler";
 
-export default PanGestureHandler_Basics;
+export default PinchGestureHandler_Basics;
