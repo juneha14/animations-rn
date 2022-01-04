@@ -1,3 +1,3 @@
-import { AdvancedGesture_PanAndScaleImage } from "./src/Fundamentals/Animated/AdvancedGesture";
+import { TapGestureHandler_Basics } from "./src/Fundamentals/Reanimated/TapGestureHandler";
 
-export default AdvancedGesture_PanAndScaleImage;
+export default TapGestureHandler_Basics;
