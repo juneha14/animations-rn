@@ -1,3 +1,3 @@
-import { PinchGestureHandler_Basics } from "./src/Fundamentals/Reanimated/PinchGestureHandler";
+import { TapGestureHandler_Basics } from "./src/Fundamentals/Reanimated/TapGestureHandler";
 
-export default PinchGestureHandler_Basics;
+export default TapGestureHandler_Basics;
