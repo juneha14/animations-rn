@@ -1,3 +1,3 @@
-import { TapGestureHandler_Basics } from "./src/Fundamentals/Reanimated/TapGestureHandler";
+import { InterpolateScrollView } from "./src/Fundamentals/Reanimated/InterpolateScrollView";
 
-export default TapGestureHandler_Basics;
+export default InterpolateScrollView;
