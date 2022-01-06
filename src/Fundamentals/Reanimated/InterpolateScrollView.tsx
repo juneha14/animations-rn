@@ -55,6 +55,7 @@ const OnboardingPage = ({
     index * width,
     (index + 1) * width,
   ];
+
   const squareAnimatedStyle = useAnimatedStyle(() => {
     const scale = interpolate(
       scrollX.value,

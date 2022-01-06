@@ -1,3 +1,3 @@
-import { InterpolateScrollView } from "./src/Fundamentals/Reanimated/InterpolateScrollView";
+import { InterpolateColors } from "./src/Fundamentals/Reanimated/InterpolateColors";
 
-export default InterpolateScrollView;
+export default InterpolateColors;
