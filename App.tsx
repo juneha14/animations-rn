@@ -1,3 +1,3 @@
-import { TapGestureHandler_Basics } from "./src/Fundamentals/Reanimated/TapGestureHandler";
+import { InterpolateColors } from "./src/Fundamentals/Reanimated/InterpolateColors";
 
-export default TapGestureHandler_Basics;
+export default InterpolateColors;
