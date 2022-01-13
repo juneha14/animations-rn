@@ -11,19 +11,23 @@ import { IconName, Section } from "./Accordion";
 
 interface CollapsableSectionProps {
   section: Section;
+  isExpandedInitially?: boolean;
 }
 
 export const CollapsableSection: React.FC<CollapsableSectionProps> = ({
   section,
+  isExpandedInitially = false,
 }) => {
   /// Height of the channels-list, so that it can animate expanding/collapsing
-  /// We want the channels-list to be expanded on initial render.
-  /// This means that we cannot simply set the initial height to 0, since the animatedStyle will then render a 0 height.
-  /// Having a null value is a trick that allows us to only use the height in the animatedStyle IFF the initial render is complete and the height of the list has been calculated (see onLayout)
-  const height = useSharedValue<number | null>(null);
+  /// If we want the channels-list to be expanded initially,
+  ///   - keep height undefined until render is complete and height of list has been calculated (see onLayout)
+  ///   - if it's set to 0, it causes a janky animation as height continues to update as onLayout completes
+  /// If we want the channels-list to be closed initially,
+  ///   - set default value to 1 so that children can get rendered correctly
+  const height = useSharedValue<number | null>(isExpandedInitially ? null : 1);
 
   /// Keep track of whether or not the channels-list is expanded
-  const expanded = useSharedValue(true);
+  const expanded = useSharedValue(isExpandedInitially);
 
   /// Derived value denoting the progress of the expansion/collapse of the channels-list
   /// 1 === list is fully expanded
@@ -34,7 +38,9 @@ export const CollapsableSection: React.FC<CollapsableSectionProps> = ({
 
   const channelListAnimatedStyle = useAnimatedStyle(() => {
     return {
-      height: height.value ? height.value * progress.value : undefined,
+      // Adding +1pt height is the KEY trick here so that the child height can be measured
+      height: height.value ? height.value * progress.value + 1 : undefined,
+      opacity: progress.value,
     };
   });
 
@@ -58,9 +64,7 @@ export const CollapsableSection: React.FC<CollapsableSectionProps> = ({
               layout: { height: h },
             },
           }) => {
-            if (h > (height.value ?? 0)) {
-              height.value = h;
-            }
+            height.value = h;
           }}
         >
           {section.channels.map((channel) => {
