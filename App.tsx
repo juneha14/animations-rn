@@ -1,11 +1,13 @@
 import React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Accordion } from "./src/Accordion/Accordion";
+import { ShowMoreText } from "./src/ShowMoreText/ShowMoreText";
 
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <Accordion />
+      {/* <Accordion /> */}
+      <ShowMoreText />
     </GestureHandlerRootView>
   );
 }
