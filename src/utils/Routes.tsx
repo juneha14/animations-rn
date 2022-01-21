@@ -7,7 +7,7 @@ import {
 } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Accordion } from "../Accordion/Accordion";
-import { BottomSheet } from "../BottomSheet/BottomSheet";
+import BottomSheet from "../BottomSheet";
 import { Colors, Spacing } from "./theme";
 
 type StackRouteParamList = {
