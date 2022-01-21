@@ -6,7 +6,6 @@ import {
   TextLayoutEventData,
   View,
   Text,
-  SafeAreaView,
 } from "react-native";
 import Animated, {
   useSharedValue,
@@ -18,6 +17,7 @@ import Animated, {
   useAnimatedReaction,
   runOnJS,
 } from "react-native-reanimated";
+import { Spacing } from "../utils";
 
 interface ShowMoreTextProps {
   collapsedNumberOfLines?: number;
@@ -94,34 +94,31 @@ export const ShowMoreText: React.FC<ShowMoreTextProps> = ({
   );
 
   return (
-    <SafeAreaView>
-      <View style={styles.container}>
-        <Animated.View style={[{ overflow: "hidden" }, textAnimatedStyle]}>
-          <View>
-            <Text onTextLayout={onTextLayout}>
-              LINE 1: Lorem ipsum dolor sit amet, consectetur adipiscing elit,
-              sed o eiusmod tempor incididunt ut labore et dolore magna aliqua.
-              Ut enimad minim veniam, qumad minim veniam, quis nostmad minim
-              veniam, quis nostmad minim veniam eniam, quis nost eniam, quis
-              nost, quis nostis nostrud exercitation ullamco laboris nisi ut
-              aliquip ex ea commodo consequat. Duis aute irure dolor in END OF
-              LINE
-            </Text>
-          </View>
-        </Animated.View>
-        <Pressable style={styles.showButton} onPress={onToggle}>
-          <Text style={styles.showButtonText}>
-            {jsCollapsed ? "Show more" : "Show less"}
+    <View style={styles.container}>
+      <Animated.View style={[{ overflow: "hidden" }, textAnimatedStyle]}>
+        <View>
+          <Text onTextLayout={onTextLayout}>
+            LINE 1: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed
+            o eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
+            enimad minim veniam, qumad minim veniam, quis nostmad minim veniam,
+            quis nostmad minim veniam eniam, quis nost eniam, quis nost, quis
+            nostis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+            commodo consequat. Duis aute irure dolor in END OF LINE
           </Text>
-        </Pressable>
-      </View>
-    </SafeAreaView>
+        </View>
+      </Animated.View>
+      <Pressable style={styles.showButton} onPress={onToggle}>
+        <Text style={styles.showButtonText}>
+          {jsCollapsed ? "Show more" : "Show less"}
+        </Text>
+      </Pressable>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
+    padding: Spacing.defaultMargin,
   },
   showButton: {
     marginTop: 5,

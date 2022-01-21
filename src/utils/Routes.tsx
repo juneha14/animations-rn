@@ -6,8 +6,11 @@ import {
   useNavigation,
 } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { Accordion } from "../Accordion/Accordion";
+import Accordion from "../Accordion";
 import BottomSheet from "../BottomSheet";
+import ShowMoreText from "../ShowMoreText";
+import { InterpolateColors } from "../Fundamentals/Reanimated/InterpolateColors";
+import { InterpolateScrollView } from "../Fundamentals/Reanimated/InterpolateScrollView";
 import { Colors, Spacing } from "./theme";
 
 type StackRouteParamList = {
@@ -39,6 +42,12 @@ export const Routes: React.FC = () => {
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="Accordion" component={Accordion} />
         <Stack.Screen name="BottomSheet" component={BottomSheet} />
+        <Stack.Screen name="ShowMoreText" component={ShowMoreText} />
+        <Stack.Screen
+          name="InterpolateScrollView"
+          component={InterpolateScrollView}
+        />
+        <Stack.Screen name="InterpolateColors" component={InterpolateColors} />
       </Stack.Navigator>
     </NavigationContainer>
   );
