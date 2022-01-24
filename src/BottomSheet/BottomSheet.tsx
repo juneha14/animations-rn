@@ -1,17 +1,7 @@
-import React, { useEffect, useState } from "react";
-import {
-  Dimensions,
-  Pressable,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  ScrollView,
-  View,
-} from "react-native";
+import React, { useEffect } from "react";
+import { Dimensions, StyleSheet, Text, ScrollView, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-  Extrapolate,
-  interpolate,
   runOnJS,
   useAnimatedStyle,
   useDerivedValue,
@@ -19,59 +9,16 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { Colors, Palette, snapPoints } from "../utils";
 
 const { width, height } = Dimensions.get("window");
 
 const SNAP_POINTS_2 = [0, -height * 0.35, -height * 0.9];
-const FULLY_CLOSED = SNAP_POINTS_2[0];
-const PREVIEW = SNAP_POINTS_2[1];
+export const FULLY_CLOSED = SNAP_POINTS_2[0];
+export const PREVIEW = SNAP_POINTS_2[1];
 const FULLY_OPENED = SNAP_POINTS_2[2];
 
-const snapPoints = (offset: number, velocity: number, snapPoints: number[]) => {
-  "worklet";
-
-  const comp = offset + velocity * 0.1;
-  const deltas = snapPoints.map((p) => Math.abs(comp - p));
-  const min = Math.min.apply(null, deltas);
-  return snapPoints.filter((p) => Math.abs(comp - p) === min)[0];
-};
-
-export const BottomSheet: React.FC = () => {
-  const [open, setOpen] = useState(false);
-  const progressOffset = useSharedValue(0);
-
-  const containerAnimatedStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
-      progressOffset.value,
-      [FULLY_CLOSED, PREVIEW],
-      [1, 0.2],
-      Extrapolate.CLAMP
-    );
-    return {
-      opacity,
-    };
-  });
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <Animated.View style={containerAnimatedStyle}>
-        <Pressable style={styles.button} onPress={() => setOpen(true)}>
-          <Text>Open Bottom Sheet</Text>
-        </Pressable>
-        <Pressable style={styles.button} onPress={() => setOpen(false)}>
-          <Text>Close Bottom Sheet</Text>
-        </Pressable>
-      </Animated.View>
-      <Sheet
-        open={open}
-        onDismissSheet={() => setOpen(false)}
-        onUpdateOffsetY={(offsetY) => (progressOffset.value = offsetY.value)}
-      />
-    </SafeAreaView>
-  );
-};
-
-const Sheet = ({
+export const BottomSheet = ({
   open,
   onDismissSheet,
   onUpdateOffsetY,
@@ -160,14 +107,14 @@ const Sheet = ({
   });
 
   return (
-    <Animated.View style={[styles.sheetContainer, animatedStyle]}>
+    <Animated.View style={[styles.container, animatedStyle]}>
       <GestureDetector gesture={panGesture}>
         <View>
           <View style={styles.sheetHeader}>
             <View style={styles.sheetHeaderIndicator} />
           </View>
           <ScrollView
-            contentContainerStyle={styles.sheetContent}
+            contentContainerStyle={styles.contentContainer}
             /*
              * https://github.com/software-mansion/react-native-gesture-handler/issues/420#issuecomment-837752503
              * https://github.com/software-mansion/react-native-gesture-handler/blob/main/example/src/new_api/bottom_sheet/index.tsx
@@ -207,41 +154,27 @@ const Item = ({ val }: { val: number }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: "#FAFAFA",
-  },
-  button: {
-    justifyContent: "center",
-    alignItems: "center",
-    marginHorizontal: 10,
-    marginBottom: 8,
-    padding: 10,
-    borderWidth: 2,
-    borderRadius: 8,
-    borderColor: "#5B5F61",
-  },
-  sheetContainer: {
     position: "absolute",
     top: height, // initially hide the bottom sheet (remember y=0 is the top)
     width: width,
     height: FULLY_OPENED,
     overflow: "hidden",
   },
-  sheetContent: {
-    backgroundColor: "#E7E8EA",
+  contentContainer: {
+    backgroundColor: Colors.SurfaceBackgroundPressed,
   },
   sheetHeader: {
     alignItems: "center",
     height: 44,
     borderTopRightRadius: 8,
     borderTopLeftRadius: 8,
-    backgroundColor: "grey",
+    backgroundColor: Palette.Grey.Primary,
   },
   sheetHeaderIndicator: {
     width: 40,
-    height: 8,
+    height: 6,
     marginTop: 10,
-    borderRadius: 10,
-    backgroundColor: "#1B1B1B",
+    borderRadius: 8,
+    backgroundColor: Colors.SurfaceBackgroundPressed,
   },
 });
