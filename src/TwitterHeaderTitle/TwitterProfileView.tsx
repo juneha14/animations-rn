@@ -9,29 +9,49 @@ import {
   Text,
   View,
   ViewStyle,
-  ScrollView,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Colors, Spacing } from "../utils";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, {
+  Extrapolate,
+  interpolate,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
+
+// Scale of profile image
+// Title and opacity of navigation header title
 
 export const TwitterProfileView: React.FC = () => {
   const { setOptions } = useNavigation();
+  const offsetY = useSharedValue(0);
 
   useEffect(() => {
     setOptions({
       header: () => {
-        return <NavigationHeader />;
+        return <NavigationHeader offsetY={offsetY} />;
       },
     });
-  }, [setOptions]);
+  }, [setOptions, offsetY]);
+
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      offsetY.value = e.contentOffset.y;
+    },
+  });
 
   return (
-    <ScrollView style={styles.container}>
+    <Animated.ScrollView
+      style={styles.container}
+      onScroll={onScroll}
+      scrollEventThrottle={16} // This is important! We are telling ScrollView to call onScroll every 16ms = 1/60fps
+    >
       <ProfileHeader />
       <TweetsList />
-    </ScrollView>
+    </Animated.ScrollView>
   );
 };
 
@@ -42,34 +62,58 @@ const Images = {
 
 const { width } = Dimensions.get("window");
 
-const NavigationHeader = () => {
-  const { top, left, right } = useSafeAreaInsets();
+const NavigationHeader = ({
+  offsetY,
+}: {
+  offsetY: Animated.SharedValue<number>;
+}) => {
+  const { top } = useSafeAreaInsets();
   const { goBack } = useNavigation();
 
+  const NAV_BAR_MAX_HEIGHT = top + 90;
+  const NAV_BAR_MIN_HEIGHT = top + 48;
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const height = interpolate(
+      offsetY.value,
+      [0, NAV_BAR_MAX_HEIGHT],
+      [NAV_BAR_MAX_HEIGHT, NAV_BAR_MIN_HEIGHT],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      height,
+    };
+  });
+
   return (
-    <View>
-      <ImageBackground
+    <>
+      <Animated.Image
+        style={[
+          {
+            width: width,
+            height: NAV_BAR_MAX_HEIGHT,
+          },
+          animatedStyle,
+        ]}
+        source={Images.header}
+      />
+      <View
         style={{
-          width: width,
-          height: 90 + top,
+          position: "absolute",
+          top: top,
           flexDirection: "row",
           justifyContent: "space-between",
+          alignItems: "center",
+          width: width,
+          paddingHorizontal: 10,
         }}
-        source={Images.header}
       >
         <Pressable onPress={() => goBack()}>
-          <Ionicons
-            style={{
-              marginLeft: 10 + left,
-              marginTop: top,
-            }}
-            name="arrow-back-circle"
-            size={38}
-          />
+          <Ionicons name="arrow-back-circle" size={38} />
         </Pressable>
         <Text
           style={{
-            marginTop: top + 10,
             color: Colors.TextOnSurfacePrimary,
             fontWeight: "bold",
             fontSize: 18,
@@ -78,18 +122,10 @@ const NavigationHeader = () => {
           Docusaurus
         </Text>
         <Pressable>
-          <Ionicons
-            style={{
-              marginRight: 10 + right,
-              marginTop: top,
-            }}
-            name="search-circle"
-            size={38}
-          />
+          <Ionicons name="search-circle" size={38} />
         </Pressable>
-      </ImageBackground>
-      <View />
-    </View>
+      </View>
+    </>
   );
 };
 
