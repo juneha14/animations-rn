@@ -1,8 +1,7 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import {
   Dimensions,
   Image,
-  ImageBackground,
   Pressable,
   StyleProp,
   StyleSheet,
@@ -22,25 +21,59 @@ import Animated, {
   useSharedValue,
 } from "react-native-reanimated";
 
-// Scale of profile image
 // Title and opacity of navigation header title
+// Blur nav bar
+// due to content translationY, the bottom gets cutoff
+// think about possible converting the profile image to an absolute position to fix the 'bouncing' effect when scrolling to top
+
+type NavBarHeight = { max: number; min: number };
 
 export const TwitterProfileView: React.FC = () => {
+  const { top } = useSafeAreaInsets();
+  const NAV_BAR_HEIGHTS: NavBarHeight = useMemo(() => {
+    return {
+      max: top + 90,
+      min: top + 46,
+    };
+  }, [top]);
+
   const { setOptions } = useNavigation();
   const offsetY = useSharedValue(0);
 
   useEffect(() => {
     setOptions({
       header: () => {
-        return <NavigationHeader offsetY={offsetY} />;
+        return (
+          <NavigationHeader offsetY={offsetY} navBarHeight={NAV_BAR_HEIGHTS} />
+        );
       },
     });
-  }, [setOptions, offsetY]);
+  }, [setOptions, offsetY, NAV_BAR_HEIGHTS]);
 
   const onScroll = useAnimatedScrollHandler({
     onScroll: (e) => {
       offsetY.value = e.contentOffset.y;
     },
+  });
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(
+      offsetY.value,
+      [0, NAV_BAR_HEIGHTS.max - NAV_BAR_HEIGHTS.min],
+      [
+        0,
+        NAV_BAR_HEIGHTS.max - NAV_BAR_HEIGHTS.min - Spacing.m - (70 - 70 * 0.6),
+      ],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      transform: [
+        {
+          translateY,
+        },
+      ],
+    };
   });
 
   return (
@@ -49,8 +82,10 @@ export const TwitterProfileView: React.FC = () => {
       onScroll={onScroll}
       scrollEventThrottle={16} // This is important! We are telling ScrollView to call onScroll every 16ms = 1/60fps
     >
-      <ProfileHeader />
-      <TweetsList />
+      <Animated.View style={animatedStyle}>
+        <ProfileHeader offsetY={offsetY} navBarHeight={NAV_BAR_HEIGHTS} />
+        <TweetsList />
+      </Animated.View>
     </Animated.ScrollView>
   );
 };
@@ -64,26 +99,23 @@ const { width } = Dimensions.get("window");
 
 const NavigationHeader = ({
   offsetY,
+  navBarHeight,
 }: {
   offsetY: Animated.SharedValue<number>;
+  navBarHeight: NavBarHeight;
 }) => {
   const { top } = useSafeAreaInsets();
   const { goBack } = useNavigation();
 
-  const NAV_BAR_MAX_HEIGHT = top + 90;
-  const NAV_BAR_MIN_HEIGHT = top + 48;
-
   const animatedStyle = useAnimatedStyle(() => {
     const height = interpolate(
       offsetY.value,
-      [0, NAV_BAR_MAX_HEIGHT],
-      [NAV_BAR_MAX_HEIGHT, NAV_BAR_MIN_HEIGHT],
+      [0, navBarHeight.max - navBarHeight.min],
+      [navBarHeight.max, navBarHeight.min],
       Extrapolate.CLAMP
     );
 
-    return {
-      height,
-    };
+    return { height };
   });
 
   return (
@@ -92,7 +124,7 @@ const NavigationHeader = ({
         style={[
           {
             width: width,
-            height: NAV_BAR_MAX_HEIGHT,
+            height: navBarHeight.max,
           },
           animatedStyle,
         ]}
@@ -129,11 +161,44 @@ const NavigationHeader = ({
   );
 };
 
-const ProfileHeader = () => {
+const ProfileHeader = ({
+  offsetY,
+  navBarHeight,
+}: {
+  offsetY: Animated.SharedValue<number>;
+  navBarHeight: NavBarHeight;
+}) => {
+  const profileImageContainerStyle = useAnimatedStyle(() => {
+    const scale = interpolate(
+      offsetY.value,
+      [0, navBarHeight.max - navBarHeight.min],
+      [1, 0.6],
+      Extrapolate.CLAMP
+    );
+
+    // Maintain the same spacing distance between profile picture and username while scaling
+    const bottomDelta = 0.5 * (70 - 70 * scale);
+    const delta = bottomDelta + Spacing.m + 2;
+
+    const translateY = interpolate(
+      offsetY.value,
+      [0, navBarHeight.max - navBarHeight.min],
+      [0, delta],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      transform: [{ scale }, { translateY: translateY }],
+    };
+  });
+
   return (
-    <View>
-      <View style={styles.profileHeaderImageButtonContainer}>
-        <Image style={styles.profileImage} source={Images.profile} />
+    <>
+      <View style={[styles.profileHeaderImageButtonContainer]}>
+        <Animated.Image
+          style={[styles.profileImage, profileImageContainerStyle]}
+          source={Images.profile}
+        />
         <Pressable style={styles.followButton}>
           <Text style={{ color: Colors.TextOnSurfacePrimary }}>Follow</Text>
         </Pressable>
@@ -157,7 +222,7 @@ const ProfileHeader = () => {
           <Text>3,677 Followers</Text>
         </View>
       </View>
-    </View>
+    </>
   );
 };
 
@@ -267,7 +332,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: Spacing.s,
+    marginTop: Spacing.m,
   },
   profileImage: {
     width: 70,
@@ -286,7 +351,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.ActionPrimary,
   },
   profileUsernameContainer: {
-    marginVertical: Spacing.defaultMargin,
+    marginVertical: Spacing.m,
   },
   iconLabel: {
     flexDirection: "row",
