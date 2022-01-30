@@ -48,6 +48,7 @@ export const Routes: React.FC = () => {
         <Stack.Screen
           name="TwitterHeaderTitle"
           component={TwitterProfileView}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="InterpolateScrollView"
