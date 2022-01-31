@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from "react";
+import React from "react";
 import {
   Dimensions,
   Image,
@@ -25,8 +25,13 @@ import Animated, {
 
 // Title and opacity of navigation header title
 // Blur nav bar
-// due to content translationY, the bottom gets cutoff
-// think about possible converting the profile image to an absolute position to fix the 'bouncing' effect when scrolling to top
+
+const Images = {
+  profile: require("../../assets/docusaurus.png"),
+  header: require("../../assets/docusaurus-header.jpeg"),
+};
+
+const { width, height } = Dimensions.get("window");
 
 const useNavBarHeightProvider = () => {
   const { top } = useSafeAreaInsets();
@@ -53,6 +58,11 @@ export const TwitterProfileView: React.FC = () => {
       <Animated.ScrollView
         style={[
           styles.container,
+
+          // These are the key!
+          // marginTop - Allows scrollView content to scroll underneath the navigation header when it reaches the NAV_BAR_MIN_HEIGHT
+          // paddingTop - Allows scrollView content to originally show at the NAV_BAR_MAX_HEIGHT. This padding gets smaller as you scroll up and gets bigger as you scroll down. Having this padding on the container and NOT the contentContainer makes the content scroll children respect its padding
+          // zIndex - Have zIndex of scrollView higher than the navigation header. This allows the scrollView to scroll on top of the navigation header banner. This can be easily seen if you remove the translationY style on the navigation header
           {
             marginTop: NAV_BAR_MIN_HEIGHT,
             paddingTop: NAV_BAR_MAX_HEIGHT - NAV_BAR_MIN_HEIGHT,
@@ -61,6 +71,7 @@ export const TwitterProfileView: React.FC = () => {
         ]}
         contentContainerStyle={{
           paddingHorizontal: Spacing.defaultMargin,
+          paddingBottom: NAV_BAR_MAX_HEIGHT - NAV_BAR_MIN_HEIGHT, // Balance bottom offset from container's paddingTop so that all tweets can be shown. Without this offset, scrollView content container will be cutoff at the bottom
           backgroundColor: Colors.SurfaceBackground,
         }}
         onScroll={onScroll}
@@ -72,13 +83,6 @@ export const TwitterProfileView: React.FC = () => {
     </>
   );
 };
-
-const Images = {
-  profile: require("../../assets/docusaurus.png"),
-  header: require("../../assets/docusaurus-header.jpeg"),
-};
-
-const { width, height } = Dimensions.get("window");
 
 const NavigationHeader = ({
   offsetY,
@@ -97,7 +101,7 @@ const NavigationHeader = ({
       Extrapolate.CLAMP
     );
 
-    const scale = interpolate(offsetY.value, [-200, 0], [2, 1], {
+    const scale = interpolate(offsetY.value, [-200, 0], [4, 1], {
       extrapolateLeft: "extend",
       extrapolateRight: "clamp",
     });
@@ -161,8 +165,9 @@ const ProfileHeader = ({
   offsetY: Animated.SharedValue<number>;
 }) => {
   const { NAV_BAR_MAX_HEIGHT, NAV_BAR_MIN_HEIGHT } = useNavBarHeightProvider();
+  const { right } = useSafeAreaInsets();
 
-  const profileImageContainerStyle = useAnimatedStyle(() => {
+  const profileImageAnimatedStyle = useAnimatedStyle(() => {
     const scale = interpolate(
       offsetY.value,
       [0, NAV_BAR_MAX_HEIGHT - NAV_BAR_MIN_HEIGHT],
@@ -171,58 +176,52 @@ const ProfileHeader = ({
     );
 
     // Maintain the same spacing distance between profile picture and username while scaling
-    const bottomDelta = 0.5 * (70 - 70 * scale);
-    const delta = bottomDelta + Spacing.m + 2; // bottomDelta + spacing between nav bar and profile photo + profile photo border width
-
+    const delta = 0.5 * (83 - 83 * 0.6) + Spacing.m; // (PICTURE_HEIGHT - SCALED_PICTURE_HEIGHT) / 2 + (some weird bottom offset when image is scaled which causes the image to not be flush to the bottom with the translation)
     const translateY = interpolate(
       offsetY.value,
-      [0, NAV_BAR_MAX_HEIGHT],
-      [0, NAV_BAR_MAX_HEIGHT],
+      [0, NAV_BAR_MAX_HEIGHT - NAV_BAR_MIN_HEIGHT],
+      [0, delta],
       Extrapolate.CLAMP
     );
 
     return {
-      //   transform: [
-      //   { scale },
-      // { translateY: translateY },
-      //   { translateX: 10000000 },
-      //   ],
+      transform: [{ scale }, { translateY: translateY }],
     };
   });
 
   return (
-    <Animated.View style={[profileImageContainerStyle, { overflow: "hidden" }]}>
-      <Animated.View
+    <View style={{ flex: 1 }}>
+      <Animated.Image
         style={[
-          styles.profileHeaderImageButtonContainer,
-          //   profileImageContainerStyle,
+          styles.profileImage,
+          { marginTop: -(0.5 * (83 - 83 * 0.6) + Spacing.m + 5) },
+          profileImageAnimatedStyle,
         ]}
-      >
-        <Animated.Image style={[styles.profileImage]} source={Images.profile} />
-        <Pressable style={styles.followButton}>
-          <Text style={{ color: Colors.TextOnSurfacePrimary }}>Follow</Text>
-        </Pressable>
-      </Animated.View>
+        source={Images.profile}
+      />
+      <Pressable style={[styles.followButton, { right }]}>
+        <Text style={{ color: Colors.TextOnSurfacePrimary }}>Follow</Text>
+      </Pressable>
+
       <View style={styles.profileUsernameContainer}>
         <Text style={{ fontWeight: "bold", fontSize: 22 }}>Docusaurus</Text>
         <Text style={{ color: Colors.TextSubdued }}>@docusaurus</Text>
       </View>
-      <View>
-        <Text style={{ fontSize: 16 }}>
-          Build optimized websites quickly, focus on your content. Part of Remix
-          and Shopify.
-        </Text>
-        <View style={styles.locationLinkContainer}>
-          <IconLabel type="location" />
-          <IconLabel type="link" style={{ marginLeft: Spacing.l }} />
-        </View>
-        <IconLabel type="calendar" style={{ marginTop: Spacing.m }} />
-        <View style={styles.followerContainer}>
-          <Text style={{ marginRight: Spacing.l }}>35 Following</Text>
-          <Text>3,677 Followers</Text>
-        </View>
+
+      <Text style={{ fontSize: 16 }}>
+        Build optimized websites quickly, focus on your content. Part of Remix
+        and Shopify.
+      </Text>
+      <View style={styles.locationLinkContainer}>
+        <IconLabel type="location" />
+        <IconLabel type="link" style={{ marginLeft: Spacing.l }} />
       </View>
-    </Animated.View>
+      <IconLabel type="calendar" style={{ marginTop: Spacing.m }} />
+      <View style={styles.followerContainer}>
+        <Text style={{ marginRight: Spacing.l }}>35 Following</Text>
+        <Text>3,677 Followers</Text>
+      </View>
+    </View>
   );
 };
 
@@ -325,28 +324,20 @@ const IconLabel = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // paddingHorizontal: Spacing.defaultMargin,
-    // backgroundColor: Colors.SurfaceBackground,
-    // backgroundColor: "orange",
-  },
-  profileHeaderImageButtonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    overflow: "hidden",
-    // marginTop: Spacing.m,
   },
   profileImage: {
-    width: 70,
-    height: 70,
-    resizeMode: "center",
-    borderRadius: 35,
-    borderWidth: 2,
+    width: 75,
+    height: 75,
+    borderRadius: 40,
+    borderWidth: 4,
     borderColor: Colors.BorderSubdued,
+    resizeMode: "center",
   },
   followButton: {
+    position: "absolute",
     justifyContent: "center",
     alignItems: "center",
+    marginTop: Spacing.s,
     paddingHorizontal: 30,
     paddingVertical: 6,
     borderRadius: 15,
@@ -354,7 +345,6 @@ const styles = StyleSheet.create({
   },
   profileUsernameContainer: {
     marginVertical: Spacing.m,
-    backgroundColor: "pink",
   },
   iconLabel: {
     flexDirection: "row",
@@ -371,6 +361,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   tweetsListContainer: {
+    flex: 1,
     marginTop: Spacing.defaultMargin,
   },
   tweetCategoryContainer: {
