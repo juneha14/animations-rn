@@ -2,6 +2,7 @@ import React from "react";
 import {
   Dimensions,
   Image,
+  ImageBackground,
   Pressable,
   StyleProp,
   StyleSheet,
@@ -9,26 +10,26 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { Colors, Spacing } from "../utils";
-import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   Extrapolate,
   interpolate,
+  useAnimatedProps,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
-
-// Blur nav bar
+import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Colors, Spacing } from "../utils";
+import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 
 const Images = {
   profile: require("../../assets/docusaurus.png"),
   header: require("../../assets/docusaurus-header.jpeg"),
 };
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 const useNavBarHeightProvider = () => {
   const { top } = useSafeAreaInsets();
@@ -90,6 +91,10 @@ export const TwitterProfileView: React.FC = () => {
   );
 };
 
+const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
+const AnimatedImageBackground =
+  Animated.createAnimatedComponent(ImageBackground);
+
 const NavigationHeader = ({
   offsetY,
   usernameDimensions,
@@ -101,7 +106,7 @@ const NavigationHeader = ({
   const { top } = useSafeAreaInsets();
   const { goBack } = useNavigation();
 
-  const animatedStyle = useAnimatedStyle(() => {
+  const bannerImageAnimatedStyle = useAnimatedStyle(() => {
     const translateY = interpolate(
       offsetY.value,
       [0, NAV_BAR_MAX_HEIGHT - NAV_BAR_MIN_HEIGHT],
@@ -140,12 +145,42 @@ const NavigationHeader = ({
     );
 
     return {
-      transform: [
-        {
-          translateY: translateY,
-        },
-      ],
+      transform: [{ translateY: translateY }],
       opacity,
+    };
+  });
+
+  const blurAnimatedStyle = useAnimatedStyle(() => {
+    const inputRange = [
+      -65,
+      0,
+      usernameDimensions.value.y + 2,
+      usernameDimensions.value.y + 2 + usernameDimensions.value.height,
+    ];
+    const outputRange = [1, 0, 0.7, 1];
+
+    return {
+      opacity: interpolate(offsetY.value, inputRange, outputRange),
+    };
+  });
+
+  // Using blurAnimatedProps should be the way to go. It produces the right smooth blurring effect, more so than just controlling its opacity
+  // However, using animatedProps causes a 'Too many pending callbacks. Memory limit exceeded' error.
+  const blurAnimatedProps = useAnimatedProps(() => {
+    const inputRange = [
+      -80,
+      0,
+      usernameDimensions.value.y + 2,
+      usernameDimensions.value.y + 2 + usernameDimensions.value.height,
+    ];
+
+    return {
+      intensity: interpolate(
+        offsetY.value,
+        inputRange,
+        [60, 0, 0, 60],
+        Extrapolate.CLAMP
+      ),
     };
   });
 
@@ -156,16 +191,24 @@ const NavigationHeader = ({
         zIndex: 1,
       }}
     >
-      <Animated.Image
+      <AnimatedImageBackground
         style={[
           {
             width: width,
             height: NAV_BAR_MAX_HEIGHT,
           },
-          animatedStyle,
+          bannerImageAnimatedStyle,
         ]}
         source={Images.header}
-      />
+      >
+        <AnimatedBlurView
+          style={[{ ...StyleSheet.absoluteFillObject }]}
+          animatedProps={blurAnimatedProps}
+          tint="dark"
+          //   intensity={60}
+        />
+      </AnimatedImageBackground>
+
       <View
         style={{
           position: "absolute",
