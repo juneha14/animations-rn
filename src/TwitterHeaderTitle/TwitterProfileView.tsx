@@ -2,12 +2,10 @@ import React from "react";
 import {
   Dimensions,
   Image,
-  NativeSyntheticEvent,
   Pressable,
   StyleProp,
   StyleSheet,
   Text,
-  TextLayoutEventData,
   View,
   ViewStyle,
 } from "react-native";
@@ -23,7 +21,6 @@ import Animated, {
   useSharedValue,
 } from "react-native-reanimated";
 
-// Title and opacity of navigation header title
 // Blur nav bar
 
 const Images = {
@@ -45,6 +42,7 @@ export const TwitterProfileView: React.FC = () => {
   const { NAV_BAR_MAX_HEIGHT, NAV_BAR_MIN_HEIGHT } = useNavBarHeightProvider();
 
   const offsetY = useSharedValue(0);
+  const usernameDimensions = useSharedValue({ height: 0, y: 0 });
 
   const onScroll = useAnimatedScrollHandler({
     onScroll: (e) => {
@@ -54,7 +52,10 @@ export const TwitterProfileView: React.FC = () => {
 
   return (
     <>
-      <NavigationHeader offsetY={offsetY} />
+      <NavigationHeader
+        offsetY={offsetY}
+        usernameDimensions={usernameDimensions}
+      />
       <Animated.ScrollView
         style={[
           styles.container,
@@ -77,7 +78,12 @@ export const TwitterProfileView: React.FC = () => {
         onScroll={onScroll}
         scrollEventThrottle={16} // This is important! We are telling ScrollView to call onScroll every 16ms = 1/60fps
       >
-        <ProfileHeader offsetY={offsetY} />
+        <ProfileHeader
+          offsetY={offsetY}
+          onLayoutUsernameContainer={({ height, y }) => {
+            usernameDimensions.value = { height, y };
+          }}
+        />
         <TweetsList />
       </Animated.ScrollView>
     </>
@@ -86,8 +92,10 @@ export const TwitterProfileView: React.FC = () => {
 
 const NavigationHeader = ({
   offsetY,
+  usernameDimensions,
 }: {
   offsetY: Animated.SharedValue<number>;
+  usernameDimensions: Animated.SharedValue<{ height: number; y: number }>;
 }) => {
   const { NAV_BAR_MAX_HEIGHT, NAV_BAR_MIN_HEIGHT } = useNavBarHeightProvider();
   const { top } = useSafeAreaInsets();
@@ -108,6 +116,36 @@ const NavigationHeader = ({
 
     return {
       transform: [{ translateY }, { scale }],
+    };
+  });
+
+  const titleAnimatedStyle = useAnimatedStyle(() => {
+    const inputRange = [
+      usernameDimensions.value.y + 2,
+      usernameDimensions.value.y + 2 + usernameDimensions.value.height,
+    ];
+
+    const translateY = interpolate(
+      offsetY.value,
+      inputRange,
+      [33, 0], // Just played around with this value until we got a smooth animation
+      Extrapolate.CLAMP
+    );
+
+    const opacity = interpolate(
+      offsetY.value,
+      inputRange,
+      [0, 1],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      transform: [
+        {
+          translateY: translateY,
+        },
+      ],
+      opacity,
     };
   });
 
@@ -136,21 +174,27 @@ const NavigationHeader = ({
           justifyContent: "space-between",
           alignItems: "center",
           width: width,
+          height: 40,
           paddingHorizontal: 10,
         }}
       >
         <Pressable onPress={() => goBack()}>
           <Ionicons name="arrow-back-circle" size={38} />
         </Pressable>
-        <Text
-          style={{
-            color: Colors.TextOnSurfacePrimary,
-            fontWeight: "bold",
-            fontSize: 18,
-          }}
+
+        <Animated.Text
+          style={[
+            {
+              color: Colors.TextOnSurfacePrimary,
+              fontWeight: "bold",
+              fontSize: 18,
+            },
+            titleAnimatedStyle,
+          ]}
         >
           Docusaurus
-        </Text>
+        </Animated.Text>
+
         <Pressable>
           <Ionicons name="search-circle" size={38} />
         </Pressable>
@@ -161,8 +205,16 @@ const NavigationHeader = ({
 
 const ProfileHeader = ({
   offsetY,
+  onLayoutUsernameContainer,
 }: {
   offsetY: Animated.SharedValue<number>;
+  onLayoutUsernameContainer: ({
+    height,
+    y,
+  }: {
+    height: number;
+    y: number;
+  }) => void;
 }) => {
   const { NAV_BAR_MAX_HEIGHT, NAV_BAR_MIN_HEIGHT } = useNavBarHeightProvider();
   const { right } = useSafeAreaInsets();
@@ -203,7 +255,15 @@ const ProfileHeader = ({
         <Text style={{ color: Colors.TextOnSurfacePrimary }}>Follow</Text>
       </Pressable>
 
-      <View style={styles.profileUsernameContainer}>
+      <View
+        style={styles.profileUsernameContainer}
+        onLayout={(e) => {
+          const layout = e.nativeEvent.layout;
+          const y = layout.y + NAV_BAR_MAX_HEIGHT - NAV_BAR_MIN_HEIGHT;
+          const height = layout.height;
+          onLayoutUsernameContainer({ height, y });
+        }}
+      >
         <Text style={{ fontWeight: "bold", fontSize: 22 }}>Docusaurus</Text>
         <Text style={{ color: Colors.TextSubdued }}>@docusaurus</Text>
       </View>
