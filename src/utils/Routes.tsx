@@ -8,10 +8,10 @@ import {
 import Accordion from "../Accordion";
 import BottomSheet from "../BottomSheet";
 import ShowMoreText from "../ShowMoreText";
+import TwitterProfileView from "../TwitterProfile";
 import { InterpolateColors } from "../Fundamentals/Reanimated/InterpolateColors";
 import { InterpolateScrollView } from "../Fundamentals/Reanimated/InterpolateScrollView";
 import { Colors, Spacing } from "./theme";
-import { TwitterProfileView } from "../TwitterHeaderTitle/TwitterProfileView";
 
 type StackRouteParamList = {
   Home: undefined;
@@ -22,7 +22,7 @@ type StackRouteParamList = {
   InterpolateScrollView: undefined;
   InterpolateColors: undefined;
   ShowMoreText: undefined;
-  TwitterHeaderTitle: undefined;
+  TwitterProfile: undefined;
 };
 
 type Screen = keyof StackRouteParamList;
@@ -32,7 +32,7 @@ const ANIMATIONS: Screen[] = [
   "InterpolateScrollView",
   "InterpolateColors",
   "ShowMoreText",
-  "TwitterHeaderTitle",
+  "TwitterProfile",
 ];
 
 const Stack = createNativeStackNavigator<StackRouteParamList>();
@@ -46,7 +46,7 @@ export const Routes: React.FC = () => {
         <Stack.Screen name="BottomSheet" component={BottomSheet} />
         <Stack.Screen name="ShowMoreText" component={ShowMoreText} />
         <Stack.Screen
-          name="TwitterHeaderTitle"
+          name="TwitterProfile"
           component={TwitterProfileView}
           options={{ headerShown: false }}
         />

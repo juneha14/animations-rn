@@ -1,43 +1,17 @@
 import React from "react";
-import {
-  Dimensions,
-  Image,
-  ImageBackground,
-  Pressable,
-  StyleProp,
-  StyleSheet,
-  Text,
-  View,
-  ViewStyle,
-} from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   Extrapolate,
   interpolate,
-  useAnimatedProps,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
-import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { NavigationHeader } from "./NavigationHeader";
+import { useNavBarHeightProvider, Images } from "./utils/utils";
+import { IconLabel } from "./utils/IconLabel";
 import { Colors, Spacing } from "../utils";
-import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
-
-const Images = {
-  profile: require("../../assets/docusaurus.png"),
-  header: require("../../assets/docusaurus-header.jpeg"),
-};
-
-const { width } = Dimensions.get("window");
-
-const useNavBarHeightProvider = () => {
-  const { top } = useSafeAreaInsets();
-  return {
-    NAV_BAR_MAX_HEIGHT: top + 90,
-    NAV_BAR_MIN_HEIGHT: top + 46,
-  };
-};
 
 export const TwitterProfileView: React.FC = () => {
   const { NAV_BAR_MAX_HEIGHT, NAV_BAR_MIN_HEIGHT } = useNavBarHeightProvider();
@@ -91,161 +65,6 @@ export const TwitterProfileView: React.FC = () => {
   );
 };
 
-const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
-const AnimatedImageBackground =
-  Animated.createAnimatedComponent(ImageBackground);
-
-const NavigationHeader = ({
-  offsetY,
-  usernameDimensions,
-}: {
-  offsetY: Animated.SharedValue<number>;
-  usernameDimensions: Animated.SharedValue<{ height: number; y: number }>;
-}) => {
-  const { NAV_BAR_MAX_HEIGHT, NAV_BAR_MIN_HEIGHT } = useNavBarHeightProvider();
-  const { top } = useSafeAreaInsets();
-  const { goBack } = useNavigation();
-
-  const bannerImageAnimatedStyle = useAnimatedStyle(() => {
-    const translateY = interpolate(
-      offsetY.value,
-      [0, NAV_BAR_MAX_HEIGHT - NAV_BAR_MIN_HEIGHT],
-      [0, -(NAV_BAR_MAX_HEIGHT - NAV_BAR_MIN_HEIGHT)],
-      Extrapolate.CLAMP
-    );
-
-    const scale = interpolate(offsetY.value, [-200, 0], [4, 1], {
-      extrapolateLeft: "extend",
-      extrapolateRight: "clamp",
-    });
-
-    return {
-      transform: [{ translateY }, { scale }],
-    };
-  });
-
-  const titleAnimatedStyle = useAnimatedStyle(() => {
-    const inputRange = [
-      usernameDimensions.value.y + 2,
-      usernameDimensions.value.y + 2 + usernameDimensions.value.height,
-    ];
-
-    const translateY = interpolate(
-      offsetY.value,
-      inputRange,
-      [33, 0], // Just played around with this value until we got a smooth animation
-      Extrapolate.CLAMP
-    );
-
-    const opacity = interpolate(
-      offsetY.value,
-      inputRange,
-      [0, 1],
-      Extrapolate.CLAMP
-    );
-
-    return {
-      transform: [{ translateY: translateY }],
-      opacity,
-    };
-  });
-
-  const blurAnimatedStyle = useAnimatedStyle(() => {
-    const inputRange = [
-      -65,
-      0,
-      usernameDimensions.value.y + 2,
-      usernameDimensions.value.y + 2 + usernameDimensions.value.height,
-    ];
-    const outputRange = [1, 0, 0.7, 1];
-
-    return {
-      opacity: interpolate(offsetY.value, inputRange, outputRange),
-    };
-  });
-
-  // Using blurAnimatedProps should be the way to go. It produces the right smooth blurring effect, more so than just controlling its opacity
-  // However, using animatedProps causes a 'Too many pending callbacks. Memory limit exceeded' error.
-  const blurAnimatedProps = useAnimatedProps(() => {
-    const inputRange = [
-      -80,
-      0,
-      usernameDimensions.value.y + 2,
-      usernameDimensions.value.y + 2 + usernameDimensions.value.height,
-    ];
-
-    return {
-      intensity: interpolate(
-        offsetY.value,
-        inputRange,
-        [60, 0, 0, 60],
-        Extrapolate.CLAMP
-      ),
-    };
-  });
-
-  return (
-    <View
-      style={{
-        ...StyleSheet.absoluteFillObject,
-        zIndex: 1,
-      }}
-    >
-      <AnimatedImageBackground
-        style={[
-          {
-            width: width,
-            height: NAV_BAR_MAX_HEIGHT,
-          },
-          bannerImageAnimatedStyle,
-        ]}
-        source={Images.header}
-      >
-        <AnimatedBlurView
-          style={[{ ...StyleSheet.absoluteFillObject }]}
-          animatedProps={blurAnimatedProps}
-          tint="dark"
-          //   intensity={60}
-        />
-      </AnimatedImageBackground>
-
-      <View
-        style={{
-          position: "absolute",
-          top: top,
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          width: width,
-          height: 40,
-          paddingHorizontal: 10,
-        }}
-      >
-        <Pressable onPress={() => goBack()}>
-          <Ionicons name="arrow-back-circle" size={38} />
-        </Pressable>
-
-        <Animated.Text
-          style={[
-            {
-              color: Colors.TextOnSurfacePrimary,
-              fontWeight: "bold",
-              fontSize: 18,
-            },
-            titleAnimatedStyle,
-          ]}
-        >
-          Docusaurus
-        </Animated.Text>
-
-        <Pressable>
-          <Ionicons name="search-circle" size={38} />
-        </Pressable>
-      </View>
-    </View>
-  );
-};
-
 const ProfileHeader = ({
   offsetY,
   onLayoutUsernameContainer,
@@ -285,11 +104,11 @@ const ProfileHeader = ({
   });
 
   return (
-    <View style={{ flex: 1 }}>
+    <View>
       <Animated.Image
         style={[
           styles.profileImage,
-          { marginTop: -(0.5 * (83 - 83 * 0.6) + Spacing.m + 5) },
+          { marginTop: -(0.5 * (83 - 83 * 0.6) + Spacing.m + 5) }, // Offset marginTop by the same `delta` translationY of the image. This will allow the image to scale and move in-line with the bottom of the navigation header (thus removing whitespace that will be caused without the marginTop offset)
           profileImageAnimatedStyle,
         ]}
         source={Images.profile}
@@ -320,6 +139,7 @@ const ProfileHeader = ({
         <IconLabel type="link" style={{ marginLeft: Spacing.l }} />
       </View>
       <IconLabel type="calendar" style={{ marginTop: Spacing.m }} />
+
       <View style={styles.followerContainer}>
         <Text style={{ marginRight: Spacing.l }}>35 Following</Text>
         <Text>3,677 Followers</Text>
@@ -353,10 +173,13 @@ const TweetsList = () => {
           <View key={val}>
             <View style={styles.tweet}>
               <Image
-                style={[
-                  styles.profileImage,
-                  { width: 50, height: 50, borderRadius: 25 },
-                ]}
+                style={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 25,
+                  borderWidth: 1,
+                  borderColor: Colors.BorderSubdued,
+                }}
                 source={Images.profile}
               />
               <View style={{ marginLeft: Spacing.m, flexShrink: 1 }}>
@@ -372,54 +195,6 @@ const TweetsList = () => {
           </View>
         );
       })}
-    </View>
-  );
-};
-
-const IconForType = {
-  location: {
-    name: "ios-location-outline",
-    title: "Menlo Park, CA",
-    interactive: true,
-  },
-  link: {
-    name: "ios-link-outline",
-    title: "v2.docusaurus.io",
-    interactive: true,
-  },
-  calendar: {
-    name: "calendar-outline",
-    title: "Joined August 2017",
-    interactive: false,
-  },
-};
-type Icon = keyof typeof IconForType;
-type IconName = keyof typeof Ionicons.glyphMap;
-
-const IconLabel = ({
-  type,
-  style,
-}: {
-  type: Icon;
-  style?: StyleProp<ViewStyle>;
-}) => {
-  return (
-    <View style={[styles.iconLabel, style]}>
-      <Ionicons
-        style={{ marginRight: 2 }}
-        name={IconForType[type].name as IconName}
-        size={18}
-        color={Colors.IconSubdued}
-      />
-      <Text
-        style={{
-          color: IconForType[type].interactive
-            ? Colors.TextInteractive
-            : Colors.TextSubdued,
-        }}
-      >
-        {IconForType[type].title}
-      </Text>
     </View>
   );
 };
@@ -449,10 +224,6 @@ const styles = StyleSheet.create({
   profileUsernameContainer: {
     marginVertical: Spacing.m,
   },
-  iconLabel: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
   locationLinkContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -464,7 +235,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   tweetsListContainer: {
-    flex: 1,
     marginTop: Spacing.defaultMargin,
   },
   tweetCategoryContainer: {
