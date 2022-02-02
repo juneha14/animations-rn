@@ -1,14 +1,14 @@
 import React, { useCallback } from "react";
 import { Text, FlatList, Pressable, View } from "react-native";
+import { NavigationContainer, useNavigation } from "@react-navigation/native";
 import {
-  NavigationContainer,
-  NavigationProp,
-  useNavigation,
-} from "@react-navigation/native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
+  createNativeStackNavigator,
+  NativeStackNavigationProp,
+} from "@react-navigation/native-stack";
 import Accordion from "../Accordion";
 import BottomSheet from "../BottomSheet";
 import ShowMoreText from "../ShowMoreText";
+import TwitterProfileView from "../TwitterProfile";
 import { InterpolateColors } from "../Fundamentals/Reanimated/InterpolateColors";
 import { InterpolateScrollView } from "../Fundamentals/Reanimated/InterpolateScrollView";
 import { Colors, Spacing } from "./theme";
@@ -22,6 +22,7 @@ type StackRouteParamList = {
   InterpolateScrollView: undefined;
   InterpolateColors: undefined;
   ShowMoreText: undefined;
+  TwitterProfile: undefined;
 };
 
 type Screen = keyof StackRouteParamList;
@@ -31,6 +32,7 @@ const ANIMATIONS: Screen[] = [
   "InterpolateScrollView",
   "InterpolateColors",
   "ShowMoreText",
+  "TwitterProfile",
 ];
 
 const Stack = createNativeStackNavigator<StackRouteParamList>();
@@ -44,6 +46,11 @@ export const Routes: React.FC = () => {
         <Stack.Screen name="BottomSheet" component={BottomSheet} />
         <Stack.Screen name="ShowMoreText" component={ShowMoreText} />
         <Stack.Screen
+          name="TwitterProfile"
+          component={TwitterProfileView}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
           name="InterpolateScrollView"
           component={InterpolateScrollView}
         />
@@ -54,13 +61,14 @@ export const Routes: React.FC = () => {
 };
 
 const Home = () => {
-  const { navigate } = useNavigation<NavigationProp<StackRouteParamList>>();
+  const { push } =
+    useNavigation<NativeStackNavigationProp<StackRouteParamList>>();
 
   const onPress = useCallback(
     (animation: Screen) => () => {
-      navigate(animation);
+      push(animation);
     },
-    [navigate]
+    [push]
   );
 
   const renderItem = useCallback(
