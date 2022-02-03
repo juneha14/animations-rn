@@ -1,13 +1,13 @@
-import React, { useState } from "react";
+import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
-  useAnimatedReaction,
+  interpolate,
+  interpolateColor,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
   withDelay,
   withSpring,
-  withTiming,
 } from "react-native-reanimated";
 import { Colors, Spacing } from "../utils";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -25,7 +25,6 @@ export const FloatingActionButton: React.FC = () => {
           position: "absolute",
           bottom: bottom + 20,
           right: right + 40,
-          backgroundColor: "pink",
         }}
       >
         {ACTIONS.reverse().map((action, index) => {
@@ -38,14 +37,49 @@ export const FloatingActionButton: React.FC = () => {
             />
           );
         })}
-        <Pressable
-          style={[styles.button, { marginBottom: 0 }]}
-          onPress={() => (open.value = !open.value)}
-        >
-          <Ionicons name="ios-add" size={50} color={Colors.IconOnPrimary} />
-        </Pressable>
+        <ToggleButton open={open} />
       </View>
     </View>
+  );
+};
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+const ToggleButton = ({ open }: { open: Animated.SharedValue<boolean> }) => {
+  const progress = useDerivedValue(() => {
+    return withSpring(open.value ? 1 : 0);
+  });
+
+  const buttonContainerAnimatedStyle = useAnimatedStyle(() => {
+    const scale = interpolate(progress.value, [0, 0.5, 1], [1, 0.2, 1]);
+    const backgroundColor = interpolateColor(
+      progress.value,
+      [0, 1],
+      [Colors.IconInteractive, Colors.IconNeutral]
+    );
+
+    return {
+      transform: [{ scale: scale }],
+      backgroundColor,
+    };
+  });
+
+  const iconAnimatedStyle = useAnimatedStyle(() => {
+    const theta = 135 * progress.value;
+    return {
+      transform: [{ rotateZ: `${theta}deg` }],
+    };
+  });
+
+  return (
+    <AnimatedPressable
+      style={[styles.button, { marginBottom: 0 }, buttonContainerAnimatedStyle]}
+      onPress={() => (open.value = !open.value)}
+    >
+      <Animated.View style={iconAnimatedStyle}>
+        <Ionicons name="ios-add" size={50} color={Colors.IconOnPrimary} />
+      </Animated.View>
+    </AnimatedPressable>
   );
 };
 
@@ -116,6 +150,10 @@ const styles = StyleSheet.create({
     height: BUTTON_SIZE,
     borderRadius: BUTTON_RADIUS,
     marginBottom: Spacing.l,
-    backgroundColor: Colors.IconNeutral,
+    backgroundColor: Colors.IconInteractive,
+    shadowRadius: 3,
+    shadowColor: "#171717",
+    shadowOffset: { height: 2, width: 0 },
+    shadowOpacity: 0.8,
   },
 });
