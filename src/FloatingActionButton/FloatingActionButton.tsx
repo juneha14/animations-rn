@@ -8,6 +8,7 @@ import Animated, {
   useSharedValue,
   withDelay,
   withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { Colors, Spacing } from "../utils";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,8 +19,15 @@ export const FloatingActionButton: React.FC = () => {
 
   const open = useSharedValue(false);
 
+  const containerAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: withTiming(open.value ? 0.5 : 1),
+    };
+  });
+
   return (
-    <View style={styles.container}>
+    <>
+      <Animated.View style={[styles.container, containerAnimatedStyle]} />
       <View
         style={{
           position: "absolute",
@@ -32,14 +40,14 @@ export const FloatingActionButton: React.FC = () => {
             <ActionButton
               key={action}
               action={action}
-              index={ACTIONS.length - 1 - index}
+              index={ACTIONS.length - 1 - index} // React lays out components top-bottom. But we want the bottom button to have 0 index
               open={open}
             />
           );
         })}
         <ToggleButton open={open} />
       </View>
-    </View>
+    </>
   );
 };
 
@@ -115,7 +123,7 @@ const ActionButton = ({
   });
 
   const delay = useDerivedValue(() => {
-    return 80 * (open.value ? index : 2 - index);
+    return 60 * (open.value ? index : 2 - index);
   });
 
   const aStyle = useAnimatedStyle(() => {
@@ -141,7 +149,7 @@ const BUTTON_RADIUS = BUTTON_SIZE / 2;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.SurfaceBackground,
+    backgroundColor: "#1e1e1e",
   },
   button: {
     justifyContent: "center",
@@ -153,7 +161,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.IconInteractive,
     shadowRadius: 3,
     shadowColor: "#171717",
-    shadowOffset: { height: 2, width: 0 },
+    shadowOffset: { height: 1, width: 0 },
     shadowOpacity: 0.8,
   },
 });
