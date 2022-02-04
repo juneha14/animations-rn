@@ -9,10 +9,10 @@ import Accordion from "../Accordion";
 import BottomSheet from "../BottomSheet";
 import ShowMoreText from "../ShowMoreText";
 import TwitterProfileView from "../TwitterProfile";
+import FloatingActionButton from "../FloatingActionButton";
 import { InterpolateColors } from "../Fundamentals/Reanimated/InterpolateColors";
 import { InterpolateScrollView } from "../Fundamentals/Reanimated/InterpolateScrollView";
 import { Colors, Spacing } from "./theme";
-import { FloatingActionButton } from "../FloatingActionButton/FloatingActionButton";
 
 type StackRouteParamList = {
   Home: undefined;

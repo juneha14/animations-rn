@@ -8,7 +8,6 @@ import Animated, {
   useSharedValue,
   withDelay,
   withSpring,
-  withTiming,
 } from "react-native-reanimated";
 import { Colors, Spacing } from "../utils";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,15 +18,9 @@ export const FloatingActionButton: React.FC = () => {
 
   const open = useSharedValue(false);
 
-  const containerAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: withTiming(open.value ? 0.5 : 1),
-    };
-  });
-
   return (
     <>
-      <Animated.View style={[styles.container, containerAnimatedStyle]} />
+      <Animated.View style={[styles.container]} />
       <View
         style={{
           position: "absolute",
@@ -91,23 +84,6 @@ const ToggleButton = ({ open }: { open: Animated.SharedValue<boolean> }) => {
   );
 };
 
-const Actions = {
-  ball: (
-    <Ionicons
-      name="ios-baseball-outline"
-      size={30}
-      color={Colors.IconOnPrimary}
-    />
-  ),
-  map: <Feather name="map-pin" size={30} color={Colors.IconOnPrimary} />,
-  microphone: (
-    <SimpleLineIcons name="microphone" size={30} color={Colors.IconOnPrimary} />
-  ),
-};
-
-type ActionType = keyof typeof Actions;
-const ACTIONS: ActionType[] = ["ball", "map", "microphone"];
-
 const ActionButton = ({
   action,
   index,
@@ -138,10 +114,35 @@ const ActionButton = ({
   });
   return (
     <Animated.View style={[styles.button, aStyle]}>
-      {Actions[action]}
+      <Pressable
+        onPress={() => {
+          if (open.value) {
+            console.log(`Action button type ${action} tapped`);
+          }
+        }}
+      >
+        {Actions[action]}
+      </Pressable>
     </Animated.View>
   );
 };
+
+const Actions = {
+  ball: (
+    <Ionicons
+      name="ios-baseball-outline"
+      size={30}
+      color={Colors.IconOnPrimary}
+    />
+  ),
+  map: <Feather name="map-pin" size={30} color={Colors.IconOnPrimary} />,
+  microphone: (
+    <SimpleLineIcons name="microphone" size={30} color={Colors.IconOnPrimary} />
+  ),
+};
+
+type ActionType = keyof typeof Actions;
+const ACTIONS: ActionType[] = ["ball", "map", "microphone"];
 
 const BUTTON_SIZE = 100;
 const BUTTON_RADIUS = BUTTON_SIZE / 2;
@@ -149,7 +150,7 @@ const BUTTON_RADIUS = BUTTON_SIZE / 2;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1e1e1e",
+    backgroundColor: Colors.SurfaceBackground,
   },
   button: {
     justifyContent: "center",
