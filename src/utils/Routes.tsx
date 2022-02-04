@@ -9,6 +9,7 @@ import Accordion from "../Accordion";
 import BottomSheet from "../BottomSheet";
 import ShowMoreText from "../ShowMoreText";
 import TwitterProfileView from "../TwitterProfile";
+import FloatingActionButton from "../FloatingActionButton";
 import { InterpolateColors } from "../Fundamentals/Reanimated/InterpolateColors";
 import { InterpolateScrollView } from "../Fundamentals/Reanimated/InterpolateScrollView";
 import { Colors, Spacing } from "./theme";
@@ -19,6 +20,7 @@ type StackRouteParamList = {
   // Animations:
   Accordion: undefined;
   BottomSheet: undefined;
+  FloatingActionButton: undefined;
   InterpolateScrollView: undefined;
   InterpolateColors: undefined;
   ShowMoreText: undefined;
@@ -29,6 +31,7 @@ type Screen = keyof StackRouteParamList;
 const ANIMATIONS: Screen[] = [
   "Accordion",
   "BottomSheet",
+  "FloatingActionButton",
   "InterpolateScrollView",
   "InterpolateColors",
   "ShowMoreText",
@@ -44,6 +47,10 @@ export const Routes: React.FC = () => {
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="Accordion" component={Accordion} />
         <Stack.Screen name="BottomSheet" component={BottomSheet} />
+        <Stack.Screen
+          name="FloatingActionButton"
+          component={FloatingActionButton}
+        />
         <Stack.Screen name="ShowMoreText" component={ShowMoreText} />
         <Stack.Screen
           name="TwitterProfile"
