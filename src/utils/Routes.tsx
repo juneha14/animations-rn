@@ -13,6 +13,7 @@ import FloatingActionButton from "../FloatingActionButton";
 import { InterpolateColors } from "../Fundamentals/Reanimated/InterpolateColors";
 import { InterpolateScrollView } from "../Fundamentals/Reanimated/InterpolateScrollView";
 import { Colors, Spacing } from "./theme";
+import { InstagramBookmark } from "../InstagramBookmark/InstagramBookmark";
 
 type StackRouteParamList = {
   Home: undefined;
@@ -21,6 +22,7 @@ type StackRouteParamList = {
   Accordion: undefined;
   BottomSheet: undefined;
   FloatingActionButton: undefined;
+  InstagramBookmark: undefined;
   InterpolateScrollView: undefined;
   InterpolateColors: undefined;
   ShowMoreText: undefined;
@@ -32,6 +34,7 @@ const ANIMATIONS: Screen[] = [
   "Accordion",
   "BottomSheet",
   "FloatingActionButton",
+  "InstagramBookmark",
   "InterpolateScrollView",
   "InterpolateColors",
   "ShowMoreText",
@@ -51,6 +54,7 @@ export const Routes: React.FC = () => {
           name="FloatingActionButton"
           component={FloatingActionButton}
         />
+        <Stack.Screen name="InstagramBookmark" component={InstagramBookmark} />
         <Stack.Screen name="ShowMoreText" component={ShowMoreText} />
         <Stack.Screen
           name="TwitterProfile"
