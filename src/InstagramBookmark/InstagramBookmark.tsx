@@ -10,21 +10,51 @@ import {
   View,
 } from "react-native";
 import { Colors, Spacing } from "../utils";
-import { Ionicons, AntDesign } from "@expo/vector-icons";
+import {
+  Ionicons,
+  AntDesign,
+  MaterialCommunityIcons,
+} from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export const InstagramBookmark: React.FC = () => {
   return (
-    <ScrollView style={styles.container}>
-      <Post index={0} />
-      <Post index={1} />
-      <Post index={2} />
-    </ScrollView>
+    <>
+      <ScrollView style={styles.container}>
+        <Post index={0} />
+        <Post index={1} />
+        <Post index={2} />
+      </ScrollView>
+      <TabBar />
+    </>
+  );
+};
+
+const TabBar = () => {
+  const { bottom } = useSafeAreaInsets();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-around",
+        alignItems: "center",
+        paddingTop: 12,
+        paddingBottom: bottom,
+        backgroundColor: Colors.SurfaceBackgroundPressed,
+      }}
+    >
+      <Ionicons name="ios-home-outline" size={24} color="black" />
+      <Ionicons name="search-outline" size={24} color="black" />
+      <MaterialCommunityIcons name="movie-roll" size={24} color="black" />
+      <MaterialCommunityIcons name="shopping-outline" size={24} color="black" />
+      <Ionicons name="person-circle-outline" size={24} color="black" />
+    </View>
   );
 };
 
 const Post = ({ index }: { index: number }) => {
   return (
-    <View style={{ paddingVertical: Spacing.m }}>
+    <View style={{ paddingVertical: Spacing.m, marginBottom: 5 }}>
       <ProfileOverview index={index} />
       <PostImage />
       <PostContent />
@@ -45,7 +75,8 @@ const PostImage = () => {
     >
       <View
         style={{
-          padding: Spacing.m,
+          paddingHorizontal: Spacing.m,
+          paddingVertical: 12,
           backgroundColor: Colors.SurfaceForegroundPressed,
         }}
       >
@@ -88,7 +119,7 @@ const PostContent = () => {
 
         {/* Bookmark button */}
         <Pressable
-          style={{ flex: 3, alignItems: "flex-end" }}
+          style={{ flex: 3, alignItems: "flex-end", marginRight: 8 }}
           onPress={() =>
             console.log(
               "========== File: InstagramBookmark.tsx, Line: 80 =========="
@@ -121,7 +152,7 @@ const ProfileOverview = ({ index }: { index: number }) => {
         justifyContent: "space-between",
         alignItems: "center",
         paddingHorizontal: Spacing.m,
-        marginBottom: Spacing.l,
+        marginBottom: Spacing.s,
       }}
     >
       {/* Profile image, username, and location container */}
