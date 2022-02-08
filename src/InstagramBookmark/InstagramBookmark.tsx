@@ -5,10 +5,18 @@ import {
   ImageBackground,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   View,
 } from "react-native";
+import Animated, {
+  useAnimatedReaction,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { Colors, Spacing } from "../utils";
 import {
   Ionicons,
@@ -17,13 +25,19 @@ import {
 } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+// Bookmark background color and scale animation
+// Bookmark image going down to user tab animation
+
 export const InstagramBookmark: React.FC = () => {
   return (
     <>
-      <ScrollView style={styles.container}>
-        <Post index={0} />
-        <Post index={1} />
-        <Post index={2} />
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ backgroundColor: Colors.SurfaceBackground }}
+      >
+        {[...Array(5).keys()].map((val) => {
+          return <Post key={val} index={val} />;
+        })}
       </ScrollView>
       <TabBar />
     </>
@@ -53,16 +67,48 @@ const TabBar = () => {
 };
 
 const Post = ({ index }: { index: number }) => {
+  const bookmarked = useSharedValue(false);
   return (
     <View style={{ paddingVertical: Spacing.m, marginBottom: 5 }}>
       <ProfileOverview index={index} />
-      <PostImage />
-      <PostContent />
+      <PostImage bookmarked={bookmarked} />
+      <PostContent
+        onBookmarkPress={() => {
+          bookmarked.value = !bookmarked.value;
+        }}
+      />
     </View>
   );
 };
 
-const PostImage = () => {
+const PostImage = ({
+  bookmarked,
+}: {
+  bookmarked: Animated.SharedValue<boolean>;
+}) => {
+  const translateY = useSharedValue(41);
+  useAnimatedReaction(
+    () => bookmarked.value,
+    (b) => {
+      if (b) {
+        translateY.value = withSequence(
+          withTiming(0),
+          withDelay(800, withTiming(41))
+        );
+      }
+    }
+  );
+
+  const savedToastAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        {
+          translateY: translateY.value,
+        },
+      ],
+    };
+  });
+
   return (
     <ImageBackground
       source={{ uri: Images.post }}
@@ -71,26 +117,35 @@ const PostImage = () => {
         height: (POST_WIDTH * 9) / 16,
         justifyContent: "flex-end",
       }}
-      imageStyle={{ resizeMode: "contain", backgroundColor: "pink" }}
+      imageStyle={{ resizeMode: "contain" }}
     >
-      <View
-        style={{
-          paddingHorizontal: Spacing.m,
-          paddingVertical: 12,
-          backgroundColor: Colors.SurfaceForegroundPressed,
-        }}
+      <Animated.View
+        style={[
+          {
+            paddingHorizontal: Spacing.m,
+            paddingVertical: 12,
+            backgroundColor: Colors.SurfaceForegroundPressed,
+          },
+          savedToastAnimatedStyle,
+        ]}
       >
         <Text style={{ color: Colors.ActionPrimary, fontWeight: "600" }}>
           Saved to Collection
         </Text>
-      </View>
+      </Animated.View>
     </ImageBackground>
   );
 };
 
-const PostContent = () => {
+const PostContent = ({ onBookmarkPress }: { onBookmarkPress: () => void }) => {
   return (
-    <View style={{ paddingHorizontal: Spacing.m, marginTop: Spacing.m }}>
+    <View
+      style={{
+        paddingHorizontal: Spacing.m,
+        paddingTop: Spacing.m,
+        backgroundColor: Colors.SurfaceBackground,
+      }}
+    >
       {/* Action buttons container */}
       <View
         style={{
@@ -120,11 +175,7 @@ const PostContent = () => {
         {/* Bookmark button */}
         <Pressable
           style={{ flex: 3, alignItems: "flex-end", marginRight: 8 }}
-          onPress={() =>
-            console.log(
-              "========== File: InstagramBookmark.tsx, Line: 80 =========="
-            )
-          }
+          onPress={() => onBookmarkPress()}
         >
           <Ionicons name="ios-bookmark-outline" size={25} color="black" />
         </Pressable>
@@ -210,13 +261,6 @@ const ProfileOverview = ({ index }: { index: number }) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.SurfaceBackground,
-  },
-});
 
 const { width: POST_WIDTH } = Dimensions.get("window");
 
