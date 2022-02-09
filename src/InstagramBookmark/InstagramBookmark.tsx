@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -9,9 +9,9 @@ import {
   View,
 } from "react-native";
 import Animated, {
+  runOnJS,
   useAnimatedReaction,
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
   withDelay,
   withSequence,
@@ -35,12 +35,131 @@ export const InstagramBookmark: React.FC = () => {
         style={{ flex: 1 }}
         contentContainerStyle={{ backgroundColor: Colors.SurfaceBackground }}
       >
-        {[...Array(5).keys()].map((val) => {
+        {[...Array(3).keys()].map((val) => {
           return <Post key={val} index={val} />;
         })}
       </ScrollView>
       <TabBar />
+      <BookmarkPreview img={{ uri: Images.posts[0] }} />
     </>
+  );
+};
+
+type BookmarkPreviewProps = {
+  img: { uri: string };
+};
+
+const BookmarkPreview: React.FC<BookmarkPreviewProps> = ({ img }) => {
+  const { bottom, right } = useSafeAreaInsets();
+
+  const imgUris = useRef<string[]>([]);
+  const [currentImgUri, setCurrentImgUri] = useState<string>();
+
+  const scale = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const isShown = useSharedValue(false);
+
+  useAnimatedReaction(
+    () => isShown.value,
+    (imgShown) => {
+      if (imgShown) {
+        scale.value = withDelay(300, withTiming(0.5));
+        translateY.value = withDelay(
+          300,
+          withTiming(120, undefined, () => {
+            isShown.value = false;
+            scale.value = 1;
+            translateY.value = 0;
+          })
+        );
+      }
+    }
+  );
+
+  const aStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        {
+          scale: scale.value,
+        },
+        {
+          translateY: translateY.value,
+        },
+      ],
+    };
+  });
+
+  useEffect(() => {
+    const runAnimation = (completion: () => void) => {
+      "worklet";
+
+      scale.value = withDelay(
+        500,
+        withTiming(1, undefined, () => {
+          //   isShown.value = true;
+          scale.value = withDelay(300, withTiming(0.5));
+          translateY.value = withDelay(
+            300,
+            withTiming(120, undefined, () => {
+              // Animation finished. Reset all values so that next animation can occur properly
+              isShown.value = false;
+              scale.value = 1;
+              translateY.value = 0;
+              runOnJS(completion)();
+            })
+          );
+        })
+      );
+    };
+
+    const recurse = () => {
+      console.log(
+        "========== File: InstagramBookmark.tsx, Line: 112 =========="
+      );
+      if (imgUris.current.length > 0) {
+        console.log(
+          "========== File: InstagramBookmark.tsx, Line: 114 =========="
+        );
+        const uri = imgUris.current.pop();
+        setCurrentImgUri(uri);
+
+        runAnimation(() => {
+          console.log(
+            "========== File: InstagramBookmark.tsx, Line: 123 =========="
+          );
+          recurse();
+        });
+      }
+    };
+
+    imgUris.current.push(img.uri);
+    recurse();
+    // scale.value = withDelay(
+    //   500,
+    //   withTiming(1, undefined, () => {
+    //     isShown.value = true;
+    //   })
+    // );
+  }, [img, scale, translateY, isShown]);
+
+  return (
+    <Animated.View
+      style={[
+        {
+          position: "absolute",
+          bottom: bottom + 24 + 12 + 10,
+          right: right + 15,
+        },
+        aStyle,
+      ]}
+    >
+      {currentImgUri && (
+        <Image
+          source={{ uri: currentImgUri }}
+          style={{ width: 50, height: 50 }}
+        />
+      )}
+    </Animated.View>
   );
 };
 
@@ -55,6 +174,7 @@ const TabBar = () => {
         paddingTop: 12,
         paddingBottom: bottom,
         backgroundColor: Colors.SurfaceBackgroundPressed,
+        // zIndex: 2,
       }}
     >
       <Ionicons name="ios-home-outline" size={24} color="black" />
@@ -68,10 +188,11 @@ const TabBar = () => {
 
 const Post = ({ index }: { index: number }) => {
   const bookmarked = useSharedValue(false);
+
   return (
     <View style={{ paddingVertical: Spacing.m, marginBottom: 5 }}>
       <ProfileOverview index={index} />
-      <PostImage bookmarked={bookmarked} />
+      <PostImage bookmarked={bookmarked} index={index} />
       <PostContent
         onBookmarkPress={() => {
           bookmarked.value = !bookmarked.value;
@@ -83,8 +204,10 @@ const Post = ({ index }: { index: number }) => {
 
 const PostImage = ({
   bookmarked,
+  index,
 }: {
   bookmarked: Animated.SharedValue<boolean>;
+  index: number;
 }) => {
   const translateY = useSharedValue(41);
   useAnimatedReaction(
@@ -111,13 +234,13 @@ const PostImage = ({
 
   return (
     <ImageBackground
-      source={{ uri: Images.post }}
+      source={{ uri: Images.posts[index] }}
       style={{
         width: POST_WIDTH,
         height: (POST_WIDTH * 9) / 16,
         justifyContent: "flex-end",
       }}
-      imageStyle={{ resizeMode: "contain" }}
+      imageStyle={{ resizeMode: "cover" }}
     >
       <Animated.View
         style={[
@@ -138,6 +261,7 @@ const PostImage = ({
 };
 
 const PostContent = ({ onBookmarkPress }: { onBookmarkPress: () => void }) => {
+  const [bookmarked, setBookmarked] = useState(false);
   return (
     <View
       style={{
@@ -175,9 +299,16 @@ const PostContent = ({ onBookmarkPress }: { onBookmarkPress: () => void }) => {
         {/* Bookmark button */}
         <Pressable
           style={{ flex: 3, alignItems: "flex-end", marginRight: 8 }}
-          onPress={() => onBookmarkPress()}
+          onPress={() => {
+            onBookmarkPress();
+            setBookmarked((b) => !b);
+          }}
         >
-          <Ionicons name="ios-bookmark-outline" size={25} color="black" />
+          <Ionicons
+            name={bookmarked ? "ios-bookmark" : "ios-bookmark-outline"}
+            size={25}
+            color="black"
+          />
         </Pressable>
       </View>
 
@@ -266,5 +397,9 @@ const { width: POST_WIDTH } = Dimensions.get("window");
 
 const Images = {
   profile: require("../../assets/docusaurus.png"),
-  post: "https://cdn.pixabay.com/photo/2013/10/29/02/13/jardin-202150_960_720.jpg",
+  posts: [
+    "https://cdn.pixabay.com/photo/2013/10/29/02/13/jardin-202150_960_720.jpg",
+    "https://cdn.pixabay.com/photo/2020/06/20/02/56/dusk-5319496_960_720.jpg",
+    "https://cdn.pixabay.com/photo/2017/08/22/11/33/autumn-2668630_960_720.jpg",
+  ],
 };
