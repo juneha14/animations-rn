@@ -12,6 +12,7 @@ import Animated, {
   runOnJS,
   useAnimatedReaction,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withSequence,
@@ -25,7 +26,6 @@ import {
 } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// Bookmark background color and scale animation
 // User tab icon wiggle animation
 
 export const InstagramBookmark: React.FC = () => {
@@ -268,6 +268,8 @@ const PostImage = ({
   );
 };
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 const PostContent = ({
   bookmarked,
   onBookmarkPress,
@@ -275,6 +277,25 @@ const PostContent = ({
   bookmarked: boolean;
   onBookmarkPress: () => void;
 }) => {
+  const progress = useDerivedValue(() => {
+    if (!bookmarked) return 1;
+
+    return withSequence(
+      withTiming(0.8, { duration: 100 }),
+      withTiming(1, { duration: 100 })
+    );
+  }, [bookmarked]);
+
+  const bookmarkButtonAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        {
+          scale: progress.value,
+        },
+      ],
+    };
+  });
+
   return (
     <View
       style={{
@@ -310,11 +331,14 @@ const PostContent = ({
         </View>
 
         {/* Bookmark button */}
-        <Pressable
-          style={{
-            alignItems: "flex-end",
-            marginRight: 8,
-          }}
+        <AnimatedPressable
+          style={[
+            {
+              alignItems: "flex-end",
+              marginRight: 8,
+            },
+            bookmarkButtonAnimatedStyle,
+          ]}
           onPress={() => onBookmarkPress()}
         >
           <Ionicons
@@ -322,7 +346,7 @@ const PostContent = ({
             size={25}
             color="black"
           />
-        </Pressable>
+        </AnimatedPressable>
       </View>
 
       {/* Likes and description container */}
