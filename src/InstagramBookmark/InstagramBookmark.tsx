@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { Ref, useImperativeHandle, useRef, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -26,9 +26,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Bookmark background color and scale animation
-// Bookmark image going down to user tab animation
+// User tab icon wiggle animation
 
 export const InstagramBookmark: React.FC = () => {
+  const bookmarkPreviewRef = useRef<BookmarkPreviewRef>(null);
+
   return (
     <>
       <ScrollView
@@ -36,132 +38,126 @@ export const InstagramBookmark: React.FC = () => {
         contentContainerStyle={{ backgroundColor: Colors.SurfaceBackground }}
       >
         {[...Array(3).keys()].map((val) => {
-          return <Post key={val} index={val} />;
+          return (
+            <Post
+              key={val}
+              index={val}
+              onBookmarkPress={(bookmarked) => {
+                if (bookmarked) {
+                  const imgUri = Images.posts[val];
+                  bookmarkPreviewRef.current?.showPreview(imgUri);
+                }
+              }}
+            />
+          );
         })}
       </ScrollView>
       <TabBar />
-      <BookmarkPreview img={{ uri: Images.posts[0] }} />
+      <BookmarkPreview ref={bookmarkPreviewRef} />
     </>
   );
 };
 
-type BookmarkPreviewProps = {
-  img: { uri: string };
-};
+interface BookmarkPreviewProps {
+  ref: Ref<BookmarkPreviewRef>;
+}
 
-const BookmarkPreview: React.FC<BookmarkPreviewProps> = ({ img }) => {
-  const { bottom, right } = useSafeAreaInsets();
+interface BookmarkPreviewRef {
+  showPreview: (imgUri: string) => void;
+}
 
-  const imgUris = useRef<string[]>([]);
-  const [currentImgUri, setCurrentImgUri] = useState<string>();
+const BookmarkPreview: React.FC<BookmarkPreviewProps> = React.forwardRef(
+  (props, ref) => {
+    const { bottom, right } = useSafeAreaInsets();
 
-  const scale = useSharedValue(0);
-  const translateY = useSharedValue(0);
-  const isShown = useSharedValue(false);
+    const imgUris = useRef<string[]>([]);
+    const isAnimationInProgress = useRef(false);
+    const [currentImgUri, setCurrentImgUri] = useState<string>();
 
-  useAnimatedReaction(
-    () => isShown.value,
-    (imgShown) => {
-      if (imgShown) {
-        scale.value = withDelay(300, withTiming(0.5));
-        translateY.value = withDelay(
-          300,
-          withTiming(120, undefined, () => {
-            isShown.value = false;
-            scale.value = 1;
-            translateY.value = 0;
-          })
-        );
-      }
-    }
-  );
+    const scale = useSharedValue(0);
+    const translateY = useSharedValue(0);
+    const opacity = useSharedValue(0);
+    const zIndex = useSharedValue(-1);
 
-  const aStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        {
-          scale: scale.value,
-        },
-        {
-          translateY: translateY.value,
-        },
-      ],
-    };
-  });
+    const aStyle = useAnimatedStyle(() => {
+      return {
+        transform: [{ scale: scale.value }, { translateY: translateY.value }],
+        opacity: opacity.value,
+        zIndex: zIndex.value,
+      };
+    });
 
-  useEffect(() => {
     const runAnimation = (completion: () => void) => {
       "worklet";
 
-      scale.value = withDelay(
-        500,
-        withTiming(1, undefined, () => {
-          //   isShown.value = true;
-          scale.value = withDelay(300, withTiming(0.5));
-          translateY.value = withDelay(
-            300,
-            withTiming(120, undefined, () => {
-              // Animation finished. Reset all values so that next animation can occur properly
-              isShown.value = false;
-              scale.value = 1;
-              translateY.value = 0;
-              runOnJS(completion)();
-            })
-          );
-        })
-      );
+      opacity.value = 1;
+      zIndex.value = 1;
+      scale.value = withTiming(1, { duration: 200 }, () => {
+        scale.value = withDelay(800, withTiming(0.5));
+        translateY.value = withDelay(
+          800,
+          withTiming(120, undefined, () => {
+            // Animation finished. Reset all values so that next animation can occur properly
+            scale.value = 0;
+            translateY.value = 0;
+            opacity.value = 0;
+            zIndex.value = -1;
+            runOnJS(completion)();
+          })
+        );
+      });
     };
 
     const recurse = () => {
-      console.log(
-        "========== File: InstagramBookmark.tsx, Line: 112 =========="
-      );
-      if (imgUris.current.length > 0) {
-        console.log(
-          "========== File: InstagramBookmark.tsx, Line: 114 =========="
-        );
-        const uri = imgUris.current.pop();
-        setCurrentImgUri(uri);
-
-        runAnimation(() => {
-          console.log(
-            "========== File: InstagramBookmark.tsx, Line: 123 =========="
-          );
-          recurse();
-        });
+      if (imgUris.current.length === 0) {
+        isAnimationInProgress.current = false;
+        return;
       }
+
+      isAnimationInProgress.current = true;
+      const uri = imgUris.current.pop();
+      setCurrentImgUri(uri);
+
+      runAnimation(() => {
+        recurse();
+      });
     };
 
-    imgUris.current.push(img.uri);
-    recurse();
-    // scale.value = withDelay(
-    //   500,
-    //   withTiming(1, undefined, () => {
-    //     isShown.value = true;
-    //   })
-    // );
-  }, [img, scale, translateY, isShown]);
+    // This is the KEY!!
+    // This hook allows us to call a function of a child component imperatively - perfect for these queue-based type animations
+    useImperativeHandle(ref, () => {
+      return {
+        showPreview: (imgUri) => {
+          imgUris.current.push(imgUri);
 
-  return (
-    <Animated.View
-      style={[
-        {
-          position: "absolute",
-          bottom: bottom + 24 + 12 + 10,
-          right: right + 15,
+          if (!isAnimationInProgress.current) {
+            recurse();
+          }
         },
-        aStyle,
-      ]}
-    >
-      {currentImgUri && (
-        <Image
-          source={{ uri: currentImgUri }}
-          style={{ width: 50, height: 50 }}
-        />
-      )}
-    </Animated.View>
-  );
-};
+      };
+    });
+
+    return (
+      <Animated.View
+        style={[
+          {
+            position: "absolute",
+            bottom: bottom + 24 + 12 + 10,
+            right: right + 15,
+          },
+          aStyle,
+        ]}
+      >
+        {currentImgUri && (
+          <Image
+            source={{ uri: currentImgUri }}
+            style={{ width: 50, height: 50 }}
+          />
+        )}
+      </Animated.View>
+    );
+  }
+);
 
 const TabBar = () => {
   const { bottom } = useSafeAreaInsets();
@@ -174,7 +170,7 @@ const TabBar = () => {
         paddingTop: 12,
         paddingBottom: bottom,
         backgroundColor: Colors.SurfaceBackgroundPressed,
-        // zIndex: 2,
+        zIndex: 2,
       }}
     >
       <Ionicons name="ios-home-outline" size={24} color="black" />
@@ -186,16 +182,26 @@ const TabBar = () => {
   );
 };
 
-const Post = ({ index }: { index: number }) => {
-  const bookmarked = useSharedValue(false);
+const Post = ({
+  index,
+  onBookmarkPress,
+}: {
+  index: number;
+  onBookmarkPress: (bookmarked: boolean) => void;
+}) => {
+  const [bookmarked, setBookmarked] = useState(false);
 
   return (
     <View style={{ paddingVertical: Spacing.m, marginBottom: 5 }}>
       <ProfileOverview index={index} />
       <PostImage bookmarked={bookmarked} index={index} />
       <PostContent
+        bookmarked={bookmarked}
         onBookmarkPress={() => {
-          bookmarked.value = !bookmarked.value;
+          setBookmarked((b) => {
+            onBookmarkPress(!b);
+            return !b;
+          });
         }}
       />
     </View>
@@ -206,12 +212,13 @@ const PostImage = ({
   bookmarked,
   index,
 }: {
-  bookmarked: Animated.SharedValue<boolean>;
+  bookmarked: boolean;
   index: number;
 }) => {
   const translateY = useSharedValue(41);
+
   useAnimatedReaction(
-    () => bookmarked.value,
+    () => bookmarked,
     (b) => {
       if (b) {
         translateY.value = withSequence(
@@ -219,7 +226,8 @@ const PostImage = ({
           withDelay(800, withTiming(41))
         );
       }
-    }
+    },
+    [bookmarked]
   );
 
   const savedToastAnimatedStyle = useAnimatedStyle(() => {
@@ -260,8 +268,13 @@ const PostImage = ({
   );
 };
 
-const PostContent = ({ onBookmarkPress }: { onBookmarkPress: () => void }) => {
-  const [bookmarked, setBookmarked] = useState(false);
+const PostContent = ({
+  bookmarked,
+  onBookmarkPress,
+}: {
+  bookmarked: boolean;
+  onBookmarkPress: () => void;
+}) => {
   return (
     <View
       style={{
@@ -280,10 +293,10 @@ const PostContent = ({ onBookmarkPress }: { onBookmarkPress: () => void }) => {
       >
         <View
           style={{
-            flex: 1,
             flexDirection: "row",
             justifyContent: "space-between",
             alignItems: "center",
+            width: 90,
           }}
         >
           <Ionicons name="ios-heart-outline" size={28} color="black" />
@@ -298,11 +311,11 @@ const PostContent = ({ onBookmarkPress }: { onBookmarkPress: () => void }) => {
 
         {/* Bookmark button */}
         <Pressable
-          style={{ flex: 3, alignItems: "flex-end", marginRight: 8 }}
-          onPress={() => {
-            onBookmarkPress();
-            setBookmarked((b) => !b);
+          style={{
+            alignItems: "flex-end",
+            marginRight: 8,
           }}
+          onPress={() => onBookmarkPress()}
         >
           <Ionicons
             name={bookmarked ? "ios-bookmark" : "ios-bookmark-outline"}
