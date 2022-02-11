@@ -24,6 +24,7 @@ import {
   AntDesign,
   MaterialCommunityIcons,
 } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // User tab icon wiggle animation
@@ -339,7 +340,13 @@ const PostContent = ({
             },
             bookmarkButtonAnimatedStyle,
           ]}
-          onPress={() => onBookmarkPress()}
+          onPress={() => {
+            if (!bookmarked) {
+              // Bookmark is being set to true, so enable haptic feedback
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            }
+            onBookmarkPress();
+          }}
         >
           <Ionicons
             name={bookmarked ? "ios-bookmark" : "ios-bookmark-outline"}
