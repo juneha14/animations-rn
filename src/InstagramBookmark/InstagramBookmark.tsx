@@ -27,10 +27,9 @@ import {
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// User tab icon wiggle animation
-
 export const InstagramBookmark: React.FC = () => {
   const bookmarkPreviewRef = useRef<BookmarkPreviewRef>(null);
+  const tabBarRef = useRef<TabBarRef>(null);
 
   return (
     <>
@@ -46,14 +45,16 @@ export const InstagramBookmark: React.FC = () => {
               onBookmarkPress={(bookmarked) => {
                 if (bookmarked) {
                   const imgUri = Images.posts[val];
-                  bookmarkPreviewRef.current?.showPreview(imgUri);
+                  bookmarkPreviewRef.current?.showPreview(imgUri, () => {
+                    tabBarRef.current?.wiggleUser();
+                  });
                 }
               }}
             />
           );
         })}
       </ScrollView>
-      <TabBar />
+      <TabBar ref={tabBarRef} />
       <BookmarkPreview ref={bookmarkPreviewRef} />
     </>
   );
@@ -64,14 +65,19 @@ interface BookmarkPreviewProps {
 }
 
 interface BookmarkPreviewRef {
-  showPreview: (imgUri: string) => void;
+  showPreview: (imgUri: string, completion: () => void) => void;
 }
+
+type PendingAnimation = {
+  imgUri: string;
+  completion: () => void;
+};
 
 const BookmarkPreview: React.FC<BookmarkPreviewProps> = React.forwardRef(
   (props, ref) => {
     const { bottom, right } = useSafeAreaInsets();
 
-    const imgUris = useRef<string[]>([]);
+    const pendingAnimations = useRef<PendingAnimation[]>([]);
     const isAnimationInProgress = useRef(false);
     const [currentImgUri, setCurrentImgUri] = useState<string>();
 
@@ -94,7 +100,7 @@ const BookmarkPreview: React.FC<BookmarkPreviewProps> = React.forwardRef(
       opacity.value = 1;
       zIndex.value = 1;
       scale.value = withTiming(1, { duration: 200 }, () => {
-        scale.value = withDelay(800, withTiming(0.5));
+        scale.value = withDelay(800, withTiming(0.4));
         translateY.value = withDelay(
           800,
           withTiming(120, undefined, () => {
@@ -110,16 +116,17 @@ const BookmarkPreview: React.FC<BookmarkPreviewProps> = React.forwardRef(
     };
 
     const recurse = () => {
-      if (imgUris.current.length === 0) {
+      if (pendingAnimations.current.length === 0) {
         isAnimationInProgress.current = false;
         return;
       }
 
       isAnimationInProgress.current = true;
-      const uri = imgUris.current.pop();
-      setCurrentImgUri(uri);
+      const animation = pendingAnimations.current.pop();
+      setCurrentImgUri(animation?.imgUri);
 
       runAnimation(() => {
+        animation?.completion();
         recurse();
       });
     };
@@ -128,8 +135,8 @@ const BookmarkPreview: React.FC<BookmarkPreviewProps> = React.forwardRef(
     // This hook allows us to call a function of a child component imperatively - perfect for these queue-based type animations
     useImperativeHandle(ref, () => {
       return {
-        showPreview: (imgUri) => {
-          imgUris.current.push(imgUri);
+        showPreview: (imgUri, completion) => {
+          pendingAnimations.current.push({ imgUri, completion });
 
           if (!isAnimationInProgress.current) {
             recurse();
@@ -160,8 +167,43 @@ const BookmarkPreview: React.FC<BookmarkPreviewProps> = React.forwardRef(
   }
 );
 
-const TabBar = () => {
+interface TabBarProps {
+  ref: Ref<TabBarRef>;
+}
+
+interface TabBarRef {
+  wiggleUser: () => void;
+}
+
+const TabBar: React.FC<TabBarProps> = React.forwardRef((props, ref) => {
   const { bottom } = useSafeAreaInsets();
+
+  const scale = useSharedValue(1);
+  const rotateZ = useSharedValue(0);
+  useImperativeHandle(ref, () => {
+    return {
+      wiggleUser: () => {
+        "worklet";
+        scale.value = withSequence(
+          withTiming(1.5, { duration: 150 }),
+          withTiming(1, { duration: 150 }, () => {
+            rotateZ.value = withSequence(
+              withTiming(-10, { duration: 100 }),
+              withTiming(10, { duration: 100 }),
+              withTiming(0, { duration: 100 })
+            );
+          })
+        );
+      },
+    };
+  });
+
+  const userTabAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }, { rotateZ: `${rotateZ.value}deg` }],
+    };
+  });
+
   return (
     <View
       style={{
@@ -171,17 +213,20 @@ const TabBar = () => {
         paddingTop: 12,
         paddingBottom: bottom,
         backgroundColor: Colors.SurfaceBackgroundPressed,
-        zIndex: 2,
+        zIndex: 2, // Makes the TabBar appear on top of the BookmarkPreview component
       }}
     >
       <Ionicons name="ios-home-outline" size={24} color="black" />
       <Ionicons name="search-outline" size={24} color="black" />
       <MaterialCommunityIcons name="movie-roll" size={24} color="black" />
       <MaterialCommunityIcons name="shopping-outline" size={24} color="black" />
-      <Ionicons name="person-circle-outline" size={24} color="black" />
+
+      <Animated.View style={userTabAnimatedStyle}>
+        <Ionicons name="person-circle-outline" size={24} color="black" />
+      </Animated.View>
     </View>
   );
-};
+});
 
 const Post = ({
   index,
@@ -278,7 +323,7 @@ const PostContent = ({
   bookmarked: boolean;
   onBookmarkPress: () => void;
 }) => {
-  const progress = useDerivedValue(() => {
+  const scale = useDerivedValue(() => {
     if (!bookmarked) return 1;
 
     return withSequence(
@@ -291,7 +336,7 @@ const PostContent = ({
     return {
       transform: [
         {
-          scale: progress.value,
+          scale: scale.value,
         },
       ],
     };
