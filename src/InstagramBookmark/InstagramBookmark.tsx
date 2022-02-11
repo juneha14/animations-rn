@@ -1,4 +1,4 @@
-import React, { Ref, useImperativeHandle, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -9,7 +9,6 @@ import {
   View,
 } from "react-native";
 import Animated, {
-  runOnJS,
   useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
@@ -19,16 +18,13 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { Colors, Spacing } from "../utils";
-import {
-  Ionicons,
-  AntDesign,
-  MaterialCommunityIcons,
-} from "@expo/vector-icons";
+import { Ionicons, AntDesign } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BookmarkThumbnail, BookmarkThumbnailRef } from "./BookmarkThumbnail";
+import { TabBar, TabBarRef } from "./TabBar";
 
 export const InstagramBookmark: React.FC = () => {
-  const bookmarkPreviewRef = useRef<BookmarkPreviewRef>(null);
+  const bookmarkThumbnailRef = useRef<BookmarkThumbnailRef>(null);
   const tabBarRef = useRef<TabBarRef>(null);
 
   return (
@@ -45,7 +41,23 @@ export const InstagramBookmark: React.FC = () => {
               onBookmarkPress={(bookmarked) => {
                 if (bookmarked) {
                   const imgUri = Images.posts[val];
-                  bookmarkPreviewRef.current?.showPreview(imgUri, () => {
+                  /**
+                   * Often times, when performing animations on child components (in this case, the TabBar and BookmarkThumbnail)
+                   * we would have a common Animated.SharedValue that would be passed down to these child components. Then the children
+                   * would map, interpolate, etc., that SharedValue to its own animatedStyle. However, this poses a limitation for our current animation needs:
+                   *
+                   * 1. For BookmarkThumbnail, we want to have a queue-based animation runner, where if multiple posts are bookmarked at once, we
+                   *    run the second one iff the first one has completed. This state management requirement makes it difficult to solely use the
+                   *    classic declarative/functional animation approach.
+                   *
+                   * 2. For TabBar, we don't want to start its wiggle animation until the BookmarkThumbnail has completed its animation.
+                   *    So, we cannot simply rely on the bookmark SharedValue to run the animation.
+                   *
+                   * Both these issues can be easily resolved if we resort to a more imperative animation approach. This allows each child component
+                   * to be independent of one another (and only deal with its internal animatedStyles and values), and allows the parent to "call" into
+                   * those children to start their animation. See useImperativeHandle hook in TabBar and BookmarkThumbnail to see how this was accomplished.
+                   */
+                  bookmarkThumbnailRef.current?.showPreview(imgUri, () => {
                     tabBarRef.current?.wiggleUser();
                   });
                 }
@@ -55,178 +67,10 @@ export const InstagramBookmark: React.FC = () => {
         })}
       </ScrollView>
       <TabBar ref={tabBarRef} />
-      <BookmarkPreview ref={bookmarkPreviewRef} />
+      <BookmarkThumbnail ref={bookmarkThumbnailRef} />
     </>
   );
 };
-
-interface BookmarkPreviewProps {
-  ref: Ref<BookmarkPreviewRef>;
-}
-
-interface BookmarkPreviewRef {
-  showPreview: (imgUri: string, completion: () => void) => void;
-}
-
-type PendingAnimation = {
-  imgUri: string;
-  completion: () => void;
-};
-
-const BookmarkPreview: React.FC<BookmarkPreviewProps> = React.forwardRef(
-  (props, ref) => {
-    const { bottom, right } = useSafeAreaInsets();
-
-    const pendingAnimations = useRef<PendingAnimation[]>([]);
-    const isAnimationInProgress = useRef(false);
-    const [currentImgUri, setCurrentImgUri] = useState<string>();
-
-    const scale = useSharedValue(0);
-    const translateY = useSharedValue(0);
-    const opacity = useSharedValue(0);
-    const zIndex = useSharedValue(-1);
-
-    const aStyle = useAnimatedStyle(() => {
-      return {
-        transform: [{ scale: scale.value }, { translateY: translateY.value }],
-        opacity: opacity.value,
-        zIndex: zIndex.value,
-      };
-    });
-
-    const runAnimation = (completion: () => void) => {
-      "worklet";
-
-      opacity.value = 1;
-      zIndex.value = 1;
-      scale.value = withTiming(1, { duration: 200 }, () => {
-        scale.value = withDelay(800, withTiming(0.4));
-        translateY.value = withDelay(
-          800,
-          withTiming(120, undefined, () => {
-            // Animation finished. Reset all values so that next animation can occur properly
-            scale.value = 0;
-            translateY.value = 0;
-            opacity.value = 0;
-            zIndex.value = -1;
-            runOnJS(completion)();
-          })
-        );
-      });
-    };
-
-    const recurse = () => {
-      if (pendingAnimations.current.length === 0) {
-        isAnimationInProgress.current = false;
-        return;
-      }
-
-      isAnimationInProgress.current = true;
-      const animation = pendingAnimations.current.pop();
-      setCurrentImgUri(animation?.imgUri);
-
-      runAnimation(() => {
-        animation?.completion();
-        recurse();
-      });
-    };
-
-    // This is the KEY!!
-    // This hook allows us to call a function of a child component imperatively - perfect for these queue-based type animations
-    useImperativeHandle(ref, () => {
-      return {
-        showPreview: (imgUri, completion) => {
-          pendingAnimations.current.push({ imgUri, completion });
-
-          if (!isAnimationInProgress.current) {
-            recurse();
-          }
-        },
-      };
-    });
-
-    return (
-      <Animated.View
-        style={[
-          {
-            position: "absolute",
-            bottom: bottom + 24 + 12 + 10,
-            right: right + 15,
-          },
-          aStyle,
-        ]}
-      >
-        {currentImgUri && (
-          <Image
-            source={{ uri: currentImgUri }}
-            style={{ width: 50, height: 50 }}
-          />
-        )}
-      </Animated.View>
-    );
-  }
-);
-
-interface TabBarProps {
-  ref: Ref<TabBarRef>;
-}
-
-interface TabBarRef {
-  wiggleUser: () => void;
-}
-
-const TabBar: React.FC<TabBarProps> = React.forwardRef((props, ref) => {
-  const { bottom } = useSafeAreaInsets();
-
-  const scale = useSharedValue(1);
-  const rotateZ = useSharedValue(0);
-  useImperativeHandle(ref, () => {
-    return {
-      wiggleUser: () => {
-        "worklet";
-        scale.value = withSequence(
-          withTiming(1.5, { duration: 150 }),
-          withTiming(1, { duration: 150 }, () => {
-            rotateZ.value = withSequence(
-              withTiming(-10, { duration: 100 }),
-              withTiming(10, { duration: 100 }),
-              withTiming(0, { duration: 100 })
-            );
-          })
-        );
-      },
-    };
-  });
-
-  const userTabAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: scale.value }, { rotateZ: `${rotateZ.value}deg` }],
-    };
-  });
-
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        justifyContent: "space-around",
-        alignItems: "center",
-        paddingTop: 12,
-        paddingBottom: bottom,
-        backgroundColor: Colors.SurfaceBackgroundPressed,
-        zIndex: 2, // Makes the TabBar appear on top of the BookmarkPreview component
-      }}
-    >
-      <Ionicons name="ios-home-outline" size={24} color="black" />
-      <Ionicons name="search-outline" size={24} color="black" />
-      <MaterialCommunityIcons name="movie-roll" size={24} color="black" />
-      <MaterialCommunityIcons name="shopping-outline" size={24} color="black" />
-
-      <Animated.View style={userTabAnimatedStyle}>
-        <Ionicons name="person-circle-outline" size={24} color="black" />
-      </Animated.View>
-    </View>
-  );
-});
 
 const Post = ({
   index,
