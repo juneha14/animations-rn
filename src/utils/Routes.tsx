@@ -14,12 +14,14 @@ import InstagramBookmark from "../InstagramBookmark";
 import { InterpolateColors } from "../Fundamentals/Reanimated/InterpolateColors";
 import { InterpolateScrollView } from "../Fundamentals/Reanimated/InterpolateScrollView";
 import { Colors, Spacing } from "./theme";
+import { AppleMail } from "../AppleMail/AppleMail";
 
 type StackRouteParamList = {
   Home: undefined;
 
   // Animations:
   Accordion: undefined;
+  AppleMail: undefined;
   BottomSheet: undefined;
   FloatingActionButton: undefined;
   InstagramBookmark: undefined;
@@ -32,6 +34,7 @@ type StackRouteParamList = {
 type Screen = keyof StackRouteParamList;
 const ANIMATIONS: Screen[] = [
   "Accordion",
+  "AppleMail",
   "BottomSheet",
   "FloatingActionButton",
   "InstagramBookmark",
@@ -49,6 +52,7 @@ export const Routes: React.FC = () => {
       <Stack.Navigator initialRouteName="Home">
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="Accordion" component={Accordion} />
+        <Stack.Screen name="AppleMail" component={AppleMail} />
         <Stack.Screen name="BottomSheet" component={BottomSheet} />
         <Stack.Screen
           name="FloatingActionButton"
