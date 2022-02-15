@@ -1,5 +1,5 @@
 import React from "react";
-import { Dimensions, Text, View } from "react-native";
+import { Dimensions, Pressable, Text, View } from "react-native";
 import Animated, {
   Extrapolate,
   interpolate,
@@ -38,7 +38,7 @@ export const AppleMail: React.FC = () => {
 };
 
 const { width } = Dimensions.get("window");
-const SNAP_POINTS = [0, -80, -width * 0.7];
+const SNAP_POINTS = [0, -80 * 3, -width * 0.95];
 
 const Row = ({ val }: { val: number }) => {
   const startOffsetX = useSharedValue(0);
@@ -58,10 +58,12 @@ const Row = ({ val }: { val: number }) => {
     });
 
   const aStyle = useAnimatedStyle(() => {
+    const translateX = Math.min(offsetX.value, 0);
+
     return {
       transform: [
         {
-          translateX: offsetX.value,
+          translateX: translateX,
         },
       ],
     };
@@ -70,6 +72,7 @@ const Row = ({ val }: { val: number }) => {
   return (
     <GestureDetector gesture={panGesture}>
       <View style={{ flexDirection: "row" }}>
+        {/* Row content container */}
         <View>
           {/* Divider */}
           <View
@@ -80,6 +83,7 @@ const Row = ({ val }: { val: number }) => {
             }}
           />
 
+          {/* Content container */}
           <Animated.View
             style={[
               {
@@ -90,7 +94,7 @@ const Row = ({ val }: { val: number }) => {
               aStyle,
             ]}
           >
-            {/* Contact and date container */}
+            {/* Contact and date */}
             <View
               style={{
                 flexDirection: "row",
@@ -131,7 +135,9 @@ const Row = ({ val }: { val: number }) => {
         </View>
 
         {/* Row action button container */}
-        <RowActionButton offsetX={offsetX} />
+        <RowActionButton offsetX={offsetX} type="more" index={2} />
+        <RowActionButton offsetX={offsetX} type="move" index={1} />
+        <RowActionButton offsetX={offsetX} type="trash" index={0} />
       </View>
     </GestureDetector>
   );
@@ -139,44 +145,26 @@ const Row = ({ val }: { val: number }) => {
 
 const RowActionButton = ({
   offsetX,
+  type,
+  index,
 }: {
   offsetX: Animated.SharedValue<number>;
+  index: number;
+  type: keyof typeof RowActions;
 }) => {
   const aStyle = useAnimatedStyle(() => {
     const inputRange = [SNAP_POINTS[2], SNAP_POINTS[1], SNAP_POINTS[0]];
 
-    const initialTranslateX = -SNAP_POINTS[2] + SNAP_POINTS[1];
-    const offsetTranslateXFromScale = initialTranslateX - initialTranslateX / 2;
-
-    // const translateX = interpolate(
-    //   offsetX.value,
-    //   inputRange,
-    //   [-offsetTranslateXFromScale, 0, -SNAP_POINTS[1]],
-    //   Extrapolate.CLAMP
-    // )
-    const translateX = interpolate(
-      offsetX.value,
-      inputRange,
-      [0, 0, -SNAP_POINTS[1]],
-      Extrapolate.CLAMP
-    );
-
-    const scaleX = interpolate(
-      offsetX.value,
-      inputRange,
-      [SNAP_POINTS[2] / SNAP_POINTS[1], 1, 1],
-      Extrapolate.CLAMP
-    );
+    const scaleFactor = Math.abs(SNAP_POINTS[2] / SNAP_POINTS[1]);
 
     const width = interpolate(
       offsetX.value,
       inputRange,
-      [-SNAP_POINTS[2], -SNAP_POINTS[1], -SNAP_POINTS[1]],
-      Extrapolate.CLAMP
+      [80 * (index + 1) * scaleFactor, 80 * (index + 1), 0]
+      //   Extrapolate.CLAMP
     );
 
     return {
-      transform: [{ translateX: translateX }, { scaleX: 1 }],
       width,
     };
   });
@@ -190,8 +178,7 @@ const RowActionButton = ({
           justifyContent: "center",
           width: 80,
           height: "100%",
-          //   paddingLeft: Spacing.l,
-          backgroundColor: "red",
+          backgroundColor: RowActions[type].color,
         },
         aStyle,
       ]}
@@ -204,7 +191,7 @@ const RowActionButton = ({
         }}
       >
         <Ionicons
-          name="ios-trash-outline"
+          name={RowActions[type].icon as keyof typeof Ionicons.glyphMap}
           color={Colors.TextOnSurfacePrimary}
           size={24}
         />
@@ -215,11 +202,29 @@ const RowActionButton = ({
             fontSize: 15,
           }}
         >
-          Trash
+          {RowActions[type].name}
         </Text>
       </View>
     </Animated.View>
   );
+};
+
+const RowActions = {
+  trash: {
+    name: "Trash",
+    color: "red",
+    icon: "ios-trash-outline",
+  },
+  move: {
+    name: "Move",
+    color: "indigo",
+    icon: "ios-folder-outline",
+  },
+  more: {
+    name: "More",
+    color: "grey",
+    icon: "ellipsis-horizontal-circle-outline",
+  },
 };
 
 const Header = () => {
