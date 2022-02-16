@@ -1,10 +1,12 @@
 import React from "react";
-import { Dimensions, Pressable, Text, View } from "react-native";
+import { Dimensions, Text, View } from "react-native";
 import Animated, {
   Extrapolate,
   interpolate,
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
+  withSpring,
   withTiming,
 } from "react-native-reanimated";
 import {
@@ -15,10 +17,8 @@ import {
 import { Colors, snapPoints, Spacing } from "../utils";
 import { Ionicons } from "@expo/vector-icons";
 
-// Vertical scroll not working when scrolling within row
 // Multiple action row buttons
 // Search bar scale animation
-// Rearrange rows
 
 export const AppleMail: React.FC = () => {
   return (
@@ -38,13 +38,15 @@ export const AppleMail: React.FC = () => {
 };
 
 const { width } = Dimensions.get("window");
-const SNAP_POINTS = [0, -80 * 3, -width * 0.95];
+const SNAP_POINTS = [0, -80 * 3, -width];
 
 const Row = ({ val }: { val: number }) => {
   const startOffsetX = useSharedValue(0);
   const offsetX = useSharedValue(0);
 
   const panGesture = Gesture.Pan()
+    .failOffsetY([-5, 5])
+    .activeOffsetX([-5, 5])
     .averageTouches(true)
     .onStart(() => {
       startOffsetX.value = offsetX.value;
@@ -53,8 +55,20 @@ const Row = ({ val }: { val: number }) => {
       offsetX.value = startOffsetX.value + e.translationX;
     })
     .onEnd((e) => {
-      const snapPoint = snapPoints(offsetX.value, e.velocityX, SNAP_POINTS);
-      offsetX.value = withTiming(snapPoint);
+      let snapPoint = snapPoints(offsetX.value, e.velocityX, SNAP_POINTS);
+
+      if (snapPoint === SNAP_POINTS[2] && offsetX.value > snapPoint) {
+        snapPoint = SNAP_POINTS[1];
+      }
+
+      offsetX.value = withSpring(snapPoint, {
+        overshootClamping: true,
+        damping: 50,
+        mass: 0.3,
+        stiffness: 121.6,
+        restSpeedThreshold: 0.3,
+        restDisplacementThreshold: 0.3,
+      });
     });
 
   const aStyle = useAnimatedStyle(() => {
@@ -63,7 +77,7 @@ const Row = ({ val }: { val: number }) => {
     return {
       transform: [
         {
-          translateX: translateX,
+          translateX,
         },
       ],
     };
@@ -152,20 +166,80 @@ const RowActionButton = ({
   index: number;
   type: keyof typeof RowActions;
 }) => {
+  const width = useSharedValue(0);
+  const reachedThreshold = useSharedValue(false);
+
+  useAnimatedReaction(
+    () => offsetX.value,
+    (translateX) => {
+      const inputRange = [SNAP_POINTS[2], SNAP_POINTS[1], SNAP_POINTS[0]];
+      const scaleFactor = Math.abs(SNAP_POINTS[2] / SNAP_POINTS[1]);
+
+      if (type === "trash") {
+        const threshold = SNAP_POINTS[2] + Spacing.xl + 2;
+        const interpolated = interpolate(
+          translateX,
+          [
+            SNAP_POINTS[2],
+            SNAP_POINTS[2] + Spacing.xl,
+            SNAP_POINTS[2] + Spacing.xl + 2,
+            SNAP_POINTS[1],
+            SNAP_POINTS[0],
+          ],
+          [-SNAP_POINTS[2], -SNAP_POINTS[2], 80 * scaleFactor, 80, 0],
+          Extrapolate.CLAMP
+        );
+
+        if (translateX <= threshold) {
+          if (reachedThreshold.value) return;
+          reachedThreshold.value = true;
+          width.value = withTiming(-SNAP_POINTS[2], { duration: 300 });
+          //   if (reachedThreshold.value) return;
+          //   reachedThreshold.value = true;
+          //   width.value = withTiming(80 * 3 * scaleFactor, { duration: 300 });
+        } else if (reachedThreshold.value) {
+          reachedThreshold.value = false;
+        } else {
+          width.value = interpolated;
+          //   reachedThreshold.value = false;
+          //   width.value = interpolate(
+          //     translateX,
+          //     [
+          //       SNAP_POINTS[2],
+          //       SNAP_POINTS[2] + Spacing.xl,
+          //       SNAP_POINTS[1],
+          //       SNAP_POINTS[0],
+          //     ],
+          //     [-SNAP_POINTS[2], 80 * scaleFactor, 80, 0],
+          //     Extrapolate.CLAMP
+          //   );
+        }
+      } else {
+        width.value = interpolate(
+          translateX,
+          inputRange,
+          [80 * (index + 1) * scaleFactor, 80 * (index + 1), 0],
+          Extrapolate.CLAMP
+        );
+      }
+    },
+    [index]
+  );
+
   const aStyle = useAnimatedStyle(() => {
     const inputRange = [SNAP_POINTS[2], SNAP_POINTS[1], SNAP_POINTS[0]];
-
     const scaleFactor = Math.abs(SNAP_POINTS[2] / SNAP_POINTS[1]);
 
-    const width = interpolate(
-      offsetX.value,
-      inputRange,
-      [80 * (index + 1) * scaleFactor, 80 * (index + 1), 0]
-      //   Extrapolate.CLAMP
-    );
+    // const width = interpolate(
+    //   offsetX.value,
+    //   inputRange,
+    //   [80 * (index + 1) * scaleFactor, 80 * (index + 1), 0],
+    //   Extrapolate.CLAMP
+    // );
 
     return {
-      width,
+      //   width,
+      width: width.value,
     };
   });
 
