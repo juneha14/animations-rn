@@ -1,6 +1,7 @@
 import React from "react";
 import { Dimensions, Text, View, Pressable } from "react-native";
 import Animated, {
+  Easing,
   Extrapolate,
   interpolate,
   useAnimatedReaction,
@@ -39,7 +40,7 @@ export const AppleMail: React.FC = () => {
 
 const { width } = Dimensions.get("window");
 const SNAP_POINTS = [0, -80, -width];
-const THRESHOLD = SNAP_POINTS[2] + Spacing.xl;
+const THRESHOLD = SNAP_POINTS[2] + Spacing.xl + 30;
 
 const Row = ({ val }: { val: number }) => {
   const startOffsetX = useSharedValue(0);
@@ -59,7 +60,7 @@ const Row = ({ val }: { val: number }) => {
   };
 
   const panGesture = Gesture.Pan()
-    .failOffsetY([-5, 5])
+    .failOffsetY([-15, 15])
     .activeOffsetX([-5, 5])
     .averageTouches(true)
     .onStart(() => {
@@ -73,7 +74,7 @@ const Row = ({ val }: { val: number }) => {
 
       if (snapPoint === SNAP_POINTS[2]) {
         if (offsetX.value > THRESHOLD) {
-          if (e.velocityX < -200) {
+          if (e.velocityX < -500) {
             // Quickly swiped
             snapPoint = SNAP_POINTS[2];
           } else if (e.velocityX < 0 || e.velocityX > 0) {
@@ -122,7 +123,6 @@ const DeleteAction = ({
 }) => {
   const iconX = useSharedValue(0);
   const reachedThreshold = useSharedValue(false);
-  const thresholdAnimationComplete = useSharedValue(true);
 
   useAnimatedReaction(
     () => offsetX.value,
@@ -130,20 +130,19 @@ const DeleteAction = ({
       if (x <= THRESHOLD) {
         if (!reachedThreshold.value) {
           reachedThreshold.value = true;
-          thresholdAnimationComplete.value = false;
-
-          iconX.value = withTiming(
-            x + 80, // Offset by the width of the icon (=== 80)
-            { duration: 150 },
-            () => (thresholdAnimationComplete.value = true)
-          );
-        } else if (thresholdAnimationComplete.value) {
-          iconX.value = withTiming(x + 80, { duration: 30 });
         }
+
+        iconX.value = withTiming(x + 80, {
+          duration: 600,
+          easing: Easing.out(Easing.exp), // This easing looks like the key to a smoother animation; and doesn't require us to 'wait' for the initial translation animation to complete
+        });
       } else {
         if (reachedThreshold.value) {
           reachedThreshold.value = false;
-          iconX.value = withTiming(0, { duration: 150 });
+          iconX.value = withTiming(0, {
+            duration: 500,
+            easing: Easing.out(Easing.exp),
+          });
         }
       }
     }
