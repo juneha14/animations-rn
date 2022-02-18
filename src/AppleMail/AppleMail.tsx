@@ -1,5 +1,5 @@
 import React from "react";
-import { Dimensions, Text, View, StyleSheet } from "react-native";
+import { Dimensions, Text, View, Pressable } from "react-native";
 import Animated, {
   Extrapolate,
   interpolate,
@@ -45,6 +45,19 @@ const Row = ({ val }: { val: number }) => {
   const startOffsetX = useSharedValue(0);
   const offsetX = useSharedValue(0);
 
+  const springifyX = (x: number) => {
+    "worklet";
+
+    offsetX.value = withSpring(x, {
+      overshootClamping: true,
+      damping: 50,
+      mass: 0.3,
+      stiffness: 121.6,
+      restSpeedThreshold: 0.3,
+      restDisplacementThreshold: 0.3,
+    });
+  };
+
   const panGesture = Gesture.Pan()
     .failOffsetY([-5, 5])
     .activeOffsetX([-5, 5])
@@ -58,33 +71,20 @@ const Row = ({ val }: { val: number }) => {
     .onEnd((e) => {
       let snapPoint = snapPoints(offsetX.value, e.velocityX, SNAP_POINTS);
 
-      if (
-        snapPoint === SNAP_POINTS[2] &&
-        offsetX.value > THRESHOLD && // Finger is translating below the threshold for icon animation
-        e.velocityX > 0 // Finger is moving back towards the origin
-      ) {
-        snapPoint = SNAP_POINTS[1];
+      if (snapPoint === SNAP_POINTS[2]) {
+        if (offsetX.value > THRESHOLD) {
+          if (e.velocityX < -200) {
+            // Quickly swiped
+            snapPoint = SNAP_POINTS[2];
+          } else if (e.velocityX < 0 || e.velocityX > 0) {
+            // Not quickly swiped enough OR pan gesture is moving back towards the origin
+            snapPoint = SNAP_POINTS[1];
+          }
+        }
       }
 
-      offsetX.value = withSpring(snapPoint, {
-        overshootClamping: true,
-        damping: 50,
-        mass: 0.3,
-        stiffness: 121.6,
-        restSpeedThreshold: 0.3,
-        restDisplacementThreshold: 0.3,
-      });
+      springifyX(snapPoint);
     });
-
-  const aStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        {
-          translateX: Math.min(offsetX.value, 0),
-        },
-      ],
-    };
-  });
 
   return (
     <GestureDetector gesture={panGesture}>
@@ -99,66 +99,26 @@ const Row = ({ val }: { val: number }) => {
           }}
         />
 
-        {/* Content container */}
-        <Animated.View
-          style={[
-            {
-              paddingVertical: Spacing.m,
-              paddingRight: Spacing.l,
-              paddingLeft: Spacing.xl,
-            },
-            aStyle,
-          ]}
-        >
-          {/* Contact and date */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 5,
-            }}
-          >
-            <Text
-              style={{
-                fontWeight: "500",
-                fontSize: 17,
-              }}
-            >{`John Doe ${val}`}</Text>
-            <Text style={{ color: Colors.TextSubdued }}>Friday</Text>
-          </View>
-
-          {/* Mail title and content preview */}
-          <View>
-            <Text
-              style={{
-                fontSize: 15,
-                marginBottom: 5,
-                color: Colors.TextNeutral,
-              }}
-            >
-              Money Team Update: January 2022
-            </Text>
-            <Text
-              style={{ color: Colors.TextSubdued, fontSize: 15 }}
-              numberOfLines={2}
-            >
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua.
-            </Text>
-          </View>
-        </Animated.View>
-
-        <DeleteAction offsetX={offsetX} />
+        <Content val={val} offsetX={offsetX} />
+        <DeleteAction
+          offsetX={offsetX}
+          onPress={() => {
+            springifyX(SNAP_POINTS[2]);
+          }}
+        />
       </View>
     </GestureDetector>
   );
 };
 
+const AnimatedButton = Animated.createAnimatedComponent(Pressable);
+
 const DeleteAction = ({
   offsetX,
+  onPress,
 }: {
   offsetX: Animated.SharedValue<number>;
+  onPress: () => void;
 }) => {
   const iconX = useSharedValue(0);
   const reachedThreshold = useSharedValue(false);
@@ -173,7 +133,7 @@ const DeleteAction = ({
           thresholdAnimationComplete.value = false;
 
           iconX.value = withTiming(
-            x + 80,
+            x + 80, // Offset by the width of the icon (=== 80)
             { duration: 150 },
             () => (thresholdAnimationComplete.value = true)
           );
@@ -228,7 +188,7 @@ const DeleteAction = ({
       ]}
     >
       {/* Trash icon */}
-      <Animated.View
+      <AnimatedButton
         style={[
           {
             position: "absolute",
@@ -239,105 +199,32 @@ const DeleteAction = ({
           },
           iconAnimatedStyle,
         ]}
+        onPress={onPress}
       >
         <Ionicons
           name="ios-trash-outline"
           size={25}
           color={Colors.TextOnSurfacePrimary}
         />
-      </Animated.View>
+      </AnimatedButton>
     </Animated.View>
   );
 };
 
-const RowActionButton = ({
+const Content = ({
+  val,
   offsetX,
-  type,
-  index,
 }: {
+  val: number;
   offsetX: Animated.SharedValue<number>;
-  index: number;
-  type: keyof typeof RowActions;
 }) => {
-  const width = useSharedValue(0);
-  const reachedThreshold = useSharedValue(false);
-  const animationComplete = useSharedValue(true);
-
-  useAnimatedReaction(
-    () => offsetX.value,
-    (translateX) => {
-      const inputRange = [SNAP_POINTS[2], SNAP_POINTS[1], SNAP_POINTS[0]];
-      const scaleFactor = Math.abs(SNAP_POINTS[2] / SNAP_POINTS[1]);
-
-      if (type === "trash") {
-        const threshold = SNAP_POINTS[2] + Spacing.xl + 2;
-        const interpolated = interpolate(
-          translateX,
-          [SNAP_POINTS[2] + Spacing.xl + 2, SNAP_POINTS[1], SNAP_POINTS[0]],
-          [80 * scaleFactor, 80, 0],
-          Extrapolate.CLAMP
-        );
-
-        if (translateX <= threshold) {
-          if (reachedThreshold.value) return;
-          reachedThreshold.value = true;
-          width.value = withTiming(-SNAP_POINTS[2], { duration: 300 });
-          //   if (reachedThreshold.value) return;
-          //   reachedThreshold.value = true;
-          //   width.value = withTiming(80 * 3 * scaleFactor, { duration: 300 });
-        } else if (
-          reachedThreshold.value &&
-          translateX > threshold
-          // translateX < SNAP_POINTS[1]
-        ) {
-          if (!animationComplete.value) return;
-          animationComplete.value = false;
-          animationComplete.value = true;
-          width.value = withTiming(interpolated, { duration: 200 }, () => {
-            animationComplete.value = true;
-            reachedThreshold.value = false;
-          });
-        } else if (animationComplete.value) {
-          width.value = interpolated;
-          //   reachedThreshold.value = false;
-          //   width.value = interpolate(
-          //     translateX,
-          //     [
-          //       SNAP_POINTS[2],
-          //       SNAP_POINTS[2] + Spacing.xl,
-          //       SNAP_POINTS[1],
-          //       SNAP_POINTS[0],
-          //     ],
-          //     [-SNAP_POINTS[2], 80 * scaleFactor, 80, 0],
-          //     Extrapolate.CLAMP
-          //   );
-        }
-      } else {
-        width.value = interpolate(
-          translateX,
-          inputRange,
-          [80 * (index + 1) * scaleFactor, 80 * (index + 1), 0],
-          Extrapolate.CLAMP
-        );
-      }
-    },
-    [index]
-  );
-
   const aStyle = useAnimatedStyle(() => {
-    const inputRange = [SNAP_POINTS[2], SNAP_POINTS[1], SNAP_POINTS[0]];
-    const scaleFactor = Math.abs(SNAP_POINTS[2] / SNAP_POINTS[1]);
-
-    // const width = interpolate(
-    //   offsetX.value,
-    //   inputRange,
-    //   [80 * (index + 1) * scaleFactor, 80 * (index + 1), 0],
-    //   Extrapolate.CLAMP
-    // );
-
     return {
-      //   width,
-      width: width.value,
+      transform: [
+        {
+          translateX: Math.min(offsetX.value, 0),
+        },
+      ],
     };
   });
 
@@ -345,58 +232,52 @@ const RowActionButton = ({
     <Animated.View
       style={[
         {
-          position: "absolute",
-          right: 0,
-          justifyContent: "center",
-          width: 80,
-          height: "100%",
-          backgroundColor: RowActions[type].color,
+          paddingVertical: Spacing.m,
+          paddingRight: Spacing.l,
+          paddingLeft: Spacing.xl,
         },
         aStyle,
       ]}
     >
+      {/* Contact and date */}
       <View
         style={{
-          justifyContent: "center",
+          flexDirection: "row",
           alignItems: "center",
-          width: 80,
+          justifyContent: "space-between",
+          marginBottom: 5,
         }}
       >
-        <Ionicons
-          name={RowActions[type].icon as keyof typeof Ionicons.glyphMap}
-          color={Colors.TextOnSurfacePrimary}
-          size={24}
-        />
         <Text
           style={{
-            color: Colors.TextOnSurfacePrimary,
-            fontWeight: "600",
+            fontWeight: "500",
+            fontSize: 17,
+          }}
+        >{`John Doe ${val}`}</Text>
+        <Text style={{ color: Colors.TextSubdued }}>Friday</Text>
+      </View>
+
+      {/* Mail title and content preview */}
+      <View>
+        <Text
+          style={{
             fontSize: 15,
+            marginBottom: 5,
+            color: Colors.TextNeutral,
           }}
         >
-          {RowActions[type].name}
+          Money Team Update: January 2022
+        </Text>
+        <Text
+          style={{ color: Colors.TextSubdued, fontSize: 15 }}
+          numberOfLines={2}
+        >
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+          eiusmod tempor incididunt ut labore et dolore magna aliqua.
         </Text>
       </View>
     </Animated.View>
   );
-};
-
-const RowActions = {
-  trash: {
-    name: "Trash",
-    color: "red",
-    icon: "ios-trash-outline",
-  },
-  move: {
-    name: "Move",
-    color: "indigo",
-    icon: "ios-folder-outline",
-  },
-  more: {
-    name: "More",
-    color: "grey",
-    icon: "ellipsis-horizontal-circle-outline",
-  },
 };
 
 const Header = () => {
