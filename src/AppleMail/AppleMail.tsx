@@ -5,9 +5,7 @@ import Animated, {
   interpolate,
   useAnimatedReaction,
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
-  withDelay,
   withSpring,
   withTiming,
 } from "react-native-reanimated";
@@ -18,7 +16,6 @@ import {
 } from "react-native-gesture-handler";
 import { Colors, snapPoints, Spacing } from "../utils";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Multiple action row buttons
 // Search bar scale animation
@@ -42,6 +39,7 @@ export const AppleMail: React.FC = () => {
 
 const { width } = Dimensions.get("window");
 const SNAP_POINTS = [0, -80, -width];
+const THRESHOLD = SNAP_POINTS[2] + Spacing.xl;
 
 const Row = ({ val }: { val: number }) => {
   const startOffsetX = useSharedValue(0);
@@ -58,11 +56,15 @@ const Row = ({ val }: { val: number }) => {
       offsetX.value = startOffsetX.value + e.translationX;
     })
     .onEnd((e) => {
-      const snapPoint = snapPoints(offsetX.value, e.velocityX, SNAP_POINTS);
+      let snapPoint = snapPoints(offsetX.value, e.velocityX, SNAP_POINTS);
 
-      //   if (snapPoint === SNAP_POINTS[2] && offsetX.value > snapPoint) {
-      //     snapPoint = SNAP_POINTS[1];
-      //   }
+      if (
+        snapPoint === SNAP_POINTS[2] &&
+        offsetX.value > THRESHOLD && // Finger is translating below the threshold for icon animation
+        e.velocityX > 0 // Finger is moving back towards the origin
+      ) {
+        snapPoint = SNAP_POINTS[1];
+      }
 
       offsetX.value = withSpring(snapPoint, {
         overshootClamping: true,
@@ -75,12 +77,10 @@ const Row = ({ val }: { val: number }) => {
     });
 
   const aStyle = useAnimatedStyle(() => {
-    const translateX = Math.min(offsetX.value, 0);
-
     return {
       transform: [
         {
-          translateX: offsetX.value,
+          translateX: Math.min(offsetX.value, 0),
         },
       ],
     };
@@ -88,7 +88,6 @@ const Row = ({ val }: { val: number }) => {
 
   return (
     <GestureDetector gesture={panGesture}>
-      {/* <View style={{ flexDirection: "row" }}> */}
       {/* Row content container */}
       <View>
         {/* Divider */}
@@ -151,14 +150,7 @@ const Row = ({ val }: { val: number }) => {
         </Animated.View>
 
         <DeleteAction offsetX={offsetX} />
-        {/* <RowActionContainer offsetX={offsetX} /> */}
       </View>
-
-      {/* Row action button container */}
-      {/* <RowActionButton offsetX={offsetX} type="more" index={2} />
-        <RowActionButton offsetX={offsetX} type="move" index={1} />
-        <RowActionButton offsetX={offsetX} type="trash" index={0} /> */}
-      {/* </View> */}
     </GestureDetector>
   );
 };
@@ -168,26 +160,25 @@ const DeleteAction = ({
 }: {
   offsetX: Animated.SharedValue<number>;
 }) => {
-  const reachedThreshold = useSharedValue(false);
   const iconX = useSharedValue(0);
-  const animationComplete = useSharedValue(true);
+  const reachedThreshold = useSharedValue(false);
+  const thresholdAnimationComplete = useSharedValue(true);
 
   useAnimatedReaction(
-    () => Math.abs(offsetX.value),
+    () => offsetX.value,
     (x) => {
-      if (x >= -SNAP_POINTS[2] - Spacing.xl) {
+      if (x <= THRESHOLD) {
         if (!reachedThreshold.value) {
           reachedThreshold.value = true;
-          animationComplete.value = false;
+          thresholdAnimationComplete.value = false;
 
           iconX.value = withTiming(
-            -x + 60,
-            { duration: 100 },
-            () => (animationComplete.value = true)
+            x + 80,
+            { duration: 150 },
+            () => (thresholdAnimationComplete.value = true)
           );
-        } else if (x > 201 && animationComplete.value) {
-          //   iconX.value = -x + 60;
-          iconX.value = withTiming(-x + 60, { duration: 30 });
+        } else if (thresholdAnimationComplete.value) {
+          iconX.value = withTiming(x + 80, { duration: 30 });
         }
       } else {
         if (reachedThreshold.value) {
@@ -230,23 +221,21 @@ const DeleteAction = ({
           top: 0,
           bottom: 0,
           right: 0,
+          alignItems: "flex-end",
           backgroundColor: "red",
         },
         aStyle,
       ]}
     >
+      {/* Trash icon */}
       <Animated.View
         style={[
           {
             position: "absolute",
-            top: 0,
-            bottom: 0,
-            // width: "100%",
-            // left: 30,
-            right: 25,
+            width: 80,
+            height: "100%",
             justifyContent: "center",
             alignItems: "center",
-            // backgroundColor: "pink",
           },
           iconAnimatedStyle,
         ]}
@@ -257,169 +246,6 @@ const DeleteAction = ({
           color={Colors.TextOnSurfacePrimary}
         />
       </Animated.View>
-    </Animated.View>
-  );
-};
-
-const RowActionContainer = ({
-  offsetX,
-}: {
-  offsetX: Animated.SharedValue<number>;
-}) => {
-  const aStyle = useAnimatedStyle(() => {
-    const scaleFactor = Math.abs(SNAP_POINTS[2] / SNAP_POINTS[1]);
-
-    const width = interpolate(
-      offsetX.value,
-      [
-        SNAP_POINTS[2],
-        SNAP_POINTS[2] + Spacing.xl + 2,
-        SNAP_POINTS[1],
-        SNAP_POINTS[0],
-      ],
-      [-SNAP_POINTS[2], 80 * 3 * scaleFactor, 80 * 3, 0],
-      Extrapolate.CLAMP
-    );
-    return {
-      width: width,
-    };
-  });
-
-  return (
-    <Animated.View
-      style={[
-        {
-          //   ...StyleSheet.absoluteFillObject,
-          flexDirection: "row",
-          //   flex: 1,
-          //   justifyContent: "flex-end",
-          position: "absolute",
-          right: 0,
-          height: "100%",
-          backgroundColor: "pink",
-        },
-        aStyle,
-      ]}
-    >
-      <RowAction type="more" offsetX={offsetX} />
-      <RowAction type="move" offsetX={offsetX} />
-      <RowAction type="trash" offsetX={offsetX} />
-    </Animated.View>
-  );
-};
-
-const RowAction = ({
-  type,
-  offsetX,
-}: {
-  type: keyof typeof RowActions;
-  offsetX: Animated.SharedValue<number>;
-}) => {
-  const reachedThreshold = useSharedValue(false);
-  const flex1 = useSharedValue(1);
-  const animationInProgress = useSharedValue(false);
-  const scaleFactor = Math.abs(SNAP_POINTS[2] / SNAP_POINTS[1]);
-
-  useAnimatedReaction(
-    () => offsetX.value,
-    (x) => {
-      if (!animationInProgress.value) {
-        if (x <= SNAP_POINTS[2] + Spacing.xl) {
-          animationInProgress.value = true;
-          reachedThreshold.value = true;
-
-          //   flex1.value = withSpring(
-          //     80 * 2 * scaleFactor,
-          //     {
-          //       overshootClamping: true,
-          //       damping: 50,
-          //       mass: 0.3,
-          //       stiffness: 121.6,
-          //       restSpeedThreshold: 0.3,
-          //       restDisplacementThreshold: 0.3,
-          //     },
-          //     () => (animationInProgress.value = false)
-          //   );
-
-          flex1.value = withTiming(
-            80 * 3 * scaleFactor,
-            { duration: 1000 },
-            () => (animationInProgress.value = false)
-          );
-        } else {
-          animationInProgress.value = true;
-          reachedThreshold.value = false;
-
-          flex1.value = withTiming(
-            80,
-            { duration: 1000 },
-            () => (animationInProgress.value = false)
-          );
-        }
-      }
-    }
-  );
-
-  const aStyle = useAnimatedStyle(() => {
-    if (type !== "trash") return {};
-
-    const f = interpolate(
-      offsetX.value,
-      [
-        // SNAP_POINTS[2] + Spacing.xl,
-        SNAP_POINTS[2] + Spacing.xl + 2,
-        SNAP_POINTS[1],
-        SNAP_POINTS[0],
-      ],
-      [90, 1, 1],
-      Extrapolate.CLAMP
-    );
-
-    return {
-      //   flex: flex1.value,
-      //   transform: [
-      //     {
-      //       scaleX: flex1.value,
-      //     },
-      //   ],
-      width: flex1.value,
-    };
-  });
-
-  return (
-    <Animated.View
-      style={[
-        {
-          flex: 1,
-          justifyContent: "center",
-          backgroundColor: RowActions[type].color,
-          //   width: 80,
-        },
-        aStyle,
-      ]}
-    >
-      <View
-        style={{
-          justifyContent: "center",
-          alignItems: "center",
-          width: 80,
-        }}
-      >
-        {/* <Ionicons
-          name={RowActions[type].icon as keyof typeof Ionicons.glyphMap}
-          color={Colors.TextOnSurfacePrimary}
-          size={24}
-        />
-        <Text
-          style={{
-            color: Colors.TextOnSurfacePrimary,
-            fontWeight: "600",
-            fontSize: 15,
-          }}
-        >
-          {RowActions[type].name}
-        </Text> */}
-      </View>
     </Animated.View>
   );
 };
