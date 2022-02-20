@@ -1,11 +1,16 @@
-import React from "react";
-import { Dimensions, Text, View, Pressable } from "react-native";
+import React, { useState } from "react";
+import { Dimensions, Text, View, Pressable, ViewStyle } from "react-native";
 import Animated, {
+  AnimatedStyleProp,
   Easing,
   Extrapolate,
   interpolate,
+  measure,
+  runOnJS,
   useAnimatedReaction,
+  useAnimatedRef,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withSpring,
   withTiming,
@@ -22,6 +27,8 @@ import { Ionicons } from "@expo/vector-icons";
 // Search bar scale animation
 
 export const AppleMail: React.FC = () => {
+  const [data, setData] = useState([...Array(10).keys()]);
+
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: Colors.SurfaceForeground }}
@@ -31,8 +38,19 @@ export const AppleMail: React.FC = () => {
       }}
     >
       <Header />
-      {[...Array(10).keys()].map((val) => {
-        return <Row key={val} val={val} />;
+      {data.map((val) => {
+        return (
+          <Row
+            key={val}
+            val={val}
+            onDelete={() => {
+              return setData((d) => {
+                const filtered = d.filter((v) => v !== val);
+                return filtered;
+              });
+            }}
+          />
+        );
       })}
     </ScrollView>
   );
@@ -42,9 +60,45 @@ const { width } = Dimensions.get("window");
 const SNAP_POINTS = [0, -80, -width];
 const THRESHOLD = SNAP_POINTS[2] + Spacing.xl + 30;
 
-const Row = ({ val }: { val: number }) => {
+const Row = ({ val, onDelete }: { val: number; onDelete: () => void }) => {
   const startOffsetX = useSharedValue(0);
   const offsetX = useSharedValue(0);
+
+  const height = useSharedValue(0);
+  const rowRef = useAnimatedRef<View>();
+  const shouldDelete = useSharedValue(false);
+  const deleteProgress = useDerivedValue(() => {
+    return withTiming(shouldDelete.value ? 0 : 1);
+  });
+
+  // Calculate height of row
+  useAnimatedReaction(
+    () => Math.abs(offsetX.value) > 0,
+    (v) => {
+      if (v && height.value === 0) {
+        const h = measure(rowRef).height;
+        height.value = h;
+      }
+    }
+  );
+
+  // Invoke onDelete iff animated height reaches 0
+  useAnimatedReaction(
+    () => deleteProgress.value,
+    (progress) => {
+      if (progress === 0) {
+        runOnJS(onDelete)();
+      }
+    },
+    [onDelete]
+  );
+
+  const deleteAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      height:
+        height.value === 0 ? undefined : height.value * deleteProgress.value,
+    };
+  });
 
   const springifyX = (x: number) => {
     "worklet";
@@ -84,30 +138,31 @@ const Row = ({ val }: { val: number }) => {
         }
       }
 
+      if (snapPoint === SNAP_POINTS[2]) {
+        shouldDelete.value = true;
+      }
+
       springifyX(snapPoint);
     });
 
   return (
     <GestureDetector gesture={panGesture}>
-      {/* Row content container */}
-      <View>
-        {/* Divider */}
-        <View
-          style={{
-            height: 1,
-            marginLeft: Spacing.xl,
-            backgroundColor: Colors.BorderSubdued,
-          }}
-        />
+      <Animated.View style={[{ overflow: "hidden" }, deleteAnimatedStyle]}>
+        <View ref={rowRef}>
+          <Divider />
+          <Content val={val} offsetX={offsetX} />
+        </View>
 
-        <Content val={val} offsetX={offsetX} />
+        {/* Delete action icon button */}
         <DeleteAction
           offsetX={offsetX}
+          animatedStyle={deleteAnimatedStyle}
           onPress={() => {
             springifyX(SNAP_POINTS[2]);
+            shouldDelete.value = true;
           }}
         />
-      </View>
+      </Animated.View>
     </GestureDetector>
   );
 };
@@ -117,9 +172,11 @@ const AnimatedButton = Animated.createAnimatedComponent(Pressable);
 const DeleteAction = ({
   offsetX,
   onPress,
+  animatedStyle,
 }: {
   offsetX: Animated.SharedValue<number>;
   onPress: () => void;
+  animatedStyle: AnimatedStyleProp<ViewStyle>;
 }) => {
   const iconX = useSharedValue(0);
   const reachedThreshold = useSharedValue(false);
@@ -184,6 +241,7 @@ const DeleteAction = ({
           backgroundColor: "red",
         },
         aStyle,
+        animatedStyle,
       ]}
     >
       {/* Trash icon */}
@@ -219,11 +277,7 @@ const Content = ({
 }) => {
   const aStyle = useAnimatedStyle(() => {
     return {
-      transform: [
-        {
-          translateX: Math.min(offsetX.value, 0),
-        },
-      ],
+      transform: [{ translateX: Math.min(offsetX.value, 0) }],
     };
   });
 
@@ -305,5 +359,17 @@ const Header = () => {
         <Text style={{ color: Colors.TextSubdued, fontSize: 16 }}>Search</Text>
       </View>
     </View>
+  );
+};
+
+const Divider = () => {
+  return (
+    <View
+      style={{
+        height: 1,
+        marginLeft: Spacing.xl,
+        backgroundColor: Colors.BorderSubdued,
+      }}
+    />
   );
 };
