@@ -22,9 +22,7 @@ import {
 } from "react-native-gesture-handler";
 import { Colors, snapPoints, Spacing } from "../utils";
 import { Ionicons } from "@expo/vector-icons";
-
-// Multiple action row buttons
-// Search bar scale animation
+import * as Haptics from "expo-haptics";
 
 export const AppleMail: React.FC = () => {
   const [data, setData] = useState([...Array(10).keys()]);
@@ -55,6 +53,9 @@ export const AppleMail: React.FC = () => {
     </ScrollView>
   );
 };
+
+// Using layout animation instead - how does this compare with animating the height
+// Search bar animation
 
 const { width } = Dimensions.get("window");
 const SNAP_POINTS = [0, -80, -width];
@@ -180,13 +181,21 @@ const DeleteAction = ({
 }) => {
   const iconX = useSharedValue(0);
   const reachedThreshold = useSharedValue(false);
+  const deletePressed = useSharedValue(false);
 
   useAnimatedReaction(
     () => offsetX.value,
     (x) => {
+      if (deletePressed.value) {
+        iconX.value = x + 80;
+        return;
+      }
+
+      // offsetX is negative, so this means that we have panned to the left and are about to delete
       if (x <= THRESHOLD) {
         if (!reachedThreshold.value) {
           reachedThreshold.value = true;
+          runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Medium);
         }
 
         iconX.value = withTiming(x + 80, {
@@ -196,6 +205,8 @@ const DeleteAction = ({
       } else {
         if (reachedThreshold.value) {
           reachedThreshold.value = false;
+          runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Medium);
+
           iconX.value = withTiming(0, {
             duration: 500,
             easing: Easing.out(Easing.exp),
@@ -216,6 +227,12 @@ const DeleteAction = ({
   });
 
   const aStyle = useAnimatedStyle(() => {
+    const width = interpolate(
+      offsetX.value,
+      [SNAP_POINTS[2], -80, 0],
+      [-SNAP_POINTS[2], 80, 80],
+      Extrapolate.CLAMP
+    );
     const translateX = interpolate(
       offsetX.value,
       [-80, 0],
@@ -224,7 +241,7 @@ const DeleteAction = ({
     );
 
     return {
-      width: Math.max(Math.abs(offsetX.value), 80),
+      width,
       transform: [{ translateX }],
     };
   });
@@ -256,7 +273,10 @@ const DeleteAction = ({
           },
           iconAnimatedStyle,
         ]}
-        onPress={onPress}
+        onPress={() => {
+          deletePressed.value = true;
+          onPress();
+        }}
       >
         <Ionicons
           name="ios-trash-outline"
