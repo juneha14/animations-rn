@@ -9,33 +9,39 @@ import Animated, {
   runOnJS,
   useAnimatedReaction,
   useAnimatedRef,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import {
-  Gesture,
-  GestureDetector,
-  ScrollView,
-} from "react-native-gesture-handler";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { Colors, snapPoints, Spacing } from "../utils";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 export const AppleMail: React.FC = () => {
-  const [data, setData] = useState([...Array(10).keys()]);
+  const [data, setData] = useState([...Array(15).keys()]);
+
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      scrollY.value = e.contentOffset.y;
+    },
+  });
 
   return (
-    <ScrollView
+    <Animated.ScrollView
       style={{ flex: 1, backgroundColor: Colors.SurfaceForeground }}
       contentContainerStyle={{
         paddingVertical: Spacing.defaultMargin,
         backgroundColor: Colors.SurfaceForeground,
       }}
+      scrollEventThrottle={16}
+      onScroll={onScroll}
     >
-      <Header />
+      <Header scrollY={scrollY} />
       {data.map((val) => {
         return (
           <Row
@@ -50,12 +56,9 @@ export const AppleMail: React.FC = () => {
           />
         );
       })}
-    </ScrollView>
+    </Animated.ScrollView>
   );
 };
-
-// Using layout animation instead - how does this compare with animating the height
-// Search bar animation
 
 const { width } = Dimensions.get("window");
 const SNAP_POINTS = [0, -80, -width];
@@ -353,32 +356,104 @@ const Content = ({
   );
 };
 
-const Header = () => {
+const SEARCH_BAR_HEIGHT = 38;
+
+const Header = ({ scrollY }: { scrollY: Animated.SharedValue<number> }) => {
+  const headerAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        {
+          translateY: interpolate(
+            scrollY.value,
+            [0, SEARCH_BAR_HEIGHT + Spacing.m],
+            [0, SEARCH_BAR_HEIGHT + Spacing.m], // offset y translation so that it stays in place until search bar disappears
+            Extrapolate.CLAMP
+          ),
+        },
+      ],
+    };
+  });
+
+  /* Using a combination of translate and scale seems to be the way to do these type of animations where
+   * a view is interpolated from a scroll position (see Twitter profile image view for a similar example).
+   *
+   * Simply interpolating the view's height does NOT work - it creates a weird 'laggy' animation whenever
+   * we scroll back up to the top.
+   */
+  const searchBarContainerAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        {
+          translateY: interpolate(
+            scrollY.value,
+            [0, SEARCH_BAR_HEIGHT],
+            [0, SEARCH_BAR_HEIGHT / 2],
+            Extrapolate.CLAMP
+          ),
+        },
+        {
+          scaleY: interpolate(
+            scrollY.value,
+            [0, SEARCH_BAR_HEIGHT],
+            [1, 0],
+            Extrapolate.CLAMP
+          ),
+        },
+      ],
+    };
+  });
+
+  const searchBarContentAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolate(scrollY.value, [0, 10], [1, 0], Extrapolate.CLAMP),
+    };
+  });
+
   return (
-    <View style={{ paddingHorizontal: Spacing.xl, marginBottom: Spacing.m }}>
-      <Text style={{ fontWeight: "700", fontSize: 30 }}>Inbox</Text>
-      {/* Search bar */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: 5,
-          paddingVertical: 8,
-          borderRadius: 10,
-          marginTop: Spacing.m,
-          marginLeft: -10,
-          backgroundColor: Colors.SurfaceBackgroundPressed,
-        }}
+    <>
+      <Animated.View
+        style={[{ paddingHorizontal: Spacing.xl }, headerAnimatedStyle]}
       >
-        <Ionicons
-          name="ios-search-outline"
-          size={20}
-          color={Colors.IconNeutral}
-          style={{ marginRight: Spacing.s }}
-        />
-        <Text style={{ color: Colors.TextSubdued, fontSize: 16 }}>Search</Text>
-      </View>
-    </View>
+        <Text style={{ fontWeight: "700", fontSize: 30 }}>Inbox</Text>
+      </Animated.View>
+
+      {/* Search bar */}
+      <Animated.View
+        style={[
+          {
+            justifyContent: "center",
+            height: SEARCH_BAR_HEIGHT,
+            marginVertical: Spacing.m,
+            marginHorizontal: Spacing.xl - 10,
+            borderRadius: 10,
+            backgroundColor: Colors.SurfaceBackgroundPressed,
+          },
+          searchBarContainerAnimatedStyle,
+        ]}
+      >
+        <Animated.View
+          style={[
+            {
+              flex: 1,
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 5,
+            },
+            searchBarContentAnimatedStyle,
+          ]}
+        >
+          <Ionicons
+            name="ios-search-outline"
+            size={20}
+            color={Colors.IconNeutral}
+            style={{ marginRight: Spacing.s }}
+          />
+          <Text style={{ color: Colors.TextSubdued, fontSize: 16 }}>
+            Search
+          </Text>
+        </Animated.View>
+      </Animated.View>
+    </>
   );
 };
 
