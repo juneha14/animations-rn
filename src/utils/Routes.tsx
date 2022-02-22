@@ -11,6 +11,7 @@ import ShowMoreText from "../ShowMoreText";
 import TwitterProfileView from "../TwitterProfile";
 import FloatingActionButton from "../FloatingActionButton";
 import InstagramBookmark from "../InstagramBookmark";
+import AppleMail from "../AppleMail";
 import { InterpolateColors } from "../Fundamentals/Reanimated/InterpolateColors";
 import { InterpolateScrollView } from "../Fundamentals/Reanimated/InterpolateScrollView";
 import { Colors, Spacing } from "./theme";
@@ -20,25 +21,27 @@ type StackRouteParamList = {
 
   // Animations:
   Accordion: undefined;
-  BottomSheet: undefined;
-  FloatingActionButton: undefined;
-  InstagramBookmark: undefined;
-  InterpolateScrollView: undefined;
-  InterpolateColors: undefined;
-  ShowMoreText: undefined;
-  TwitterProfile: undefined;
+  "Apple Mail": undefined;
+  "Bottom Sheet": undefined;
+  "Floating Action Button": undefined;
+  "Instagram Bookmark": undefined;
+  "Interpolate ScrollView": undefined;
+  "Interpolate Colors": undefined;
+  "Show More Text": undefined;
+  "Twitter Profile": undefined;
 };
 
 type Screen = keyof StackRouteParamList;
 const ANIMATIONS: Screen[] = [
   "Accordion",
-  "BottomSheet",
-  "FloatingActionButton",
-  "InstagramBookmark",
-  "InterpolateScrollView",
-  "InterpolateColors",
-  "ShowMoreText",
-  "TwitterProfile",
+  "Apple Mail",
+  "Bottom Sheet",
+  "Floating Action Button",
+  "Instagram Bookmark",
+  "Interpolate ScrollView",
+  "Interpolate Colors",
+  "Show More Text",
+  "Twitter Profile",
 ];
 
 const Stack = createNativeStackNavigator<StackRouteParamList>();
@@ -46,26 +49,30 @@ const Stack = createNativeStackNavigator<StackRouteParamList>();
 export const Routes: React.FC = () => {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Home">
+      <Stack.Navigator
+        initialRouteName="Home"
+        screenOptions={{ headerBackTitle: " " }}
+      >
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="Accordion" component={Accordion} />
-        <Stack.Screen name="BottomSheet" component={BottomSheet} />
+        <Stack.Screen name="Apple Mail" component={AppleMail} />
+        <Stack.Screen name="Bottom Sheet" component={BottomSheet} />
         <Stack.Screen
-          name="FloatingActionButton"
+          name="Floating Action Button"
           component={FloatingActionButton}
         />
-        <Stack.Screen name="InstagramBookmark" component={InstagramBookmark} />
-        <Stack.Screen name="ShowMoreText" component={ShowMoreText} />
+        <Stack.Screen name="Instagram Bookmark" component={InstagramBookmark} />
+        <Stack.Screen name="Show More Text" component={ShowMoreText} />
         <Stack.Screen
-          name="TwitterProfile"
+          name="Twitter Profile"
           component={TwitterProfileView}
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="InterpolateScrollView"
+          name="Interpolate ScrollView"
           component={InterpolateScrollView}
         />
-        <Stack.Screen name="InterpolateColors" component={InterpolateColors} />
+        <Stack.Screen name="Interpolate Colors" component={InterpolateColors} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -87,7 +94,10 @@ const Home = () => {
       return (
         <>
           <Pressable
-            style={{ padding: Spacing.defaultMargin }}
+            style={{
+              paddingHorizontal: Spacing.xl,
+              paddingVertical: 18,
+            }}
             onPress={onPress(item)}
           >
             <Text>{item}</Text>
