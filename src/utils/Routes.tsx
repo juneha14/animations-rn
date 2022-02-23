@@ -15,6 +15,7 @@ import AppleMail from "../AppleMail";
 import { InterpolateColors } from "../Fundamentals/Reanimated/InterpolateColors";
 import { InterpolateScrollView } from "../Fundamentals/Reanimated/InterpolateScrollView";
 import { Colors, Spacing } from "./theme";
+import { DragToSortList } from "../DragToSortList/DragToSortList";
 
 type StackRouteParamList = {
   Home: undefined;
@@ -23,6 +24,7 @@ type StackRouteParamList = {
   Accordion: undefined;
   "Apple Mail": undefined;
   "Bottom Sheet": undefined;
+  "Drag to Sort List": undefined;
   "Floating Action Button": undefined;
   "Instagram Bookmark": undefined;
   "Interpolate ScrollView": undefined;
@@ -36,6 +38,7 @@ const ANIMATIONS: Screen[] = [
   "Accordion",
   "Apple Mail",
   "Bottom Sheet",
+  "Drag to Sort List",
   "Floating Action Button",
   "Instagram Bookmark",
   "Interpolate ScrollView",
@@ -57,6 +60,7 @@ export const Routes: React.FC = () => {
         <Stack.Screen name="Accordion" component={Accordion} />
         <Stack.Screen name="Apple Mail" component={AppleMail} />
         <Stack.Screen name="Bottom Sheet" component={BottomSheet} />
+        <Stack.Screen name="Drag to Sort List" component={DragToSortList} />
         <Stack.Screen
           name="Floating Action Button"
           component={FloatingActionButton}
