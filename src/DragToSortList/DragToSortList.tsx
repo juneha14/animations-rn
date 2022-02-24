@@ -65,9 +65,9 @@ const SNAP_POINTS = DATA.map((_, index) => [
   -index * ROW_HEIGHT,
 ]).flat();
 
-// onEnd gesture should snap the dragged row into proper position
-// onEnd gesture for dragged row outside the view's bounds should snap into position
-// scrolling row
+// Add top padding
+// Haptic feedback
+// Update order of list when pan gesture ends so that next animation occurs with reset values
 
 const Row = ({
   index,
@@ -90,10 +90,9 @@ const Row = ({
   const dragging = useSharedValue(false);
   const zIndex = useSharedValue(0);
 
-  // Observe dragAbsY value (produced from the dragging row pan gesture)
-  // and animate up/down the other rows
+  // Observe dragAbsY value (produced from the dragging row pan gesture) and animate up/down the other rows
   useAnimatedReaction(
-    () => Math.abs(dragAbsY.value),
+    () => dragAbsY.value,
     (dragEndPos) => {
       if (dragIndex.value === index || dragIndex.value === -1) return;
 
@@ -133,6 +132,7 @@ const Row = ({
     }
   );
 
+  // Pan gesture handler for the dragging row
   const panGesture = Gesture.Pan()
     .onStart(() => {
       dragging.value = true;
@@ -143,6 +143,27 @@ const Row = ({
     .onUpdate((e) => {
       dragOffsetY.value = dragStartOffsetY.value + e.translationY;
       dragAbsY.value = dragStartAbsY.value + dragOffsetY.value;
+    })
+    .onEnd(() => {
+      const snapToPoint = (p: number) => {
+        "worklet";
+        dragOffsetY.value = withTiming(p, undefined, () => {
+          dragging.value = false;
+          zIndex.value = 0;
+        });
+      };
+
+      let snapPoint = snapPoints(dragOffsetY.value, 0, SNAP_POINTS);
+
+      if (dragOffsetY.value > (DATA.length - index) * ROW_HEIGHT) {
+        // Drag row is outside bottom list bounds
+        snapPoint = (DATA.length - index - 1) * ROW_HEIGHT;
+      } else if (dragOffsetY.value < -index * ROW_HEIGHT) {
+        // Drag row is outside top list bounds
+        snapPoint = -index * ROW_HEIGHT;
+      }
+
+      snapToPoint(snapPoint);
     });
 
   const aStyle = useAnimatedStyle(() => {

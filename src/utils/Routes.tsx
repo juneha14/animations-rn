@@ -12,10 +12,10 @@ import TwitterProfileView from "../TwitterProfile";
 import FloatingActionButton from "../FloatingActionButton";
 import InstagramBookmark from "../InstagramBookmark";
 import AppleMail from "../AppleMail";
+import DragToSortList from "../DragToSortList";
 import { InterpolateColors } from "../Fundamentals/Reanimated/InterpolateColors";
 import { InterpolateScrollView } from "../Fundamentals/Reanimated/InterpolateScrollView";
 import { Colors, Spacing } from "./theme";
-import { DragToSortList } from "../DragToSortList/DragToSortList";
 
 type StackRouteParamList = {
   Home: undefined;
