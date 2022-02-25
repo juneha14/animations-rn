@@ -1,6 +1,7 @@
 import React from "react";
 import { Image, Text, View } from "react-native";
 import Animated, {
+  runOnJS,
   useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
@@ -10,6 +11,7 @@ import Animated, {
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { Colors, snapPoints, Spacing } from "../utils";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 
 const Images = {
   profile: require("../../assets/docusaurus.png"),
@@ -22,16 +24,12 @@ const DATA = [
   "media-db-rn",
   "animations-rn",
   "memory-matching-game-rn",
-  "react-native-learning",
   "balance-mobile",
   "android",
-  //   "shop-core-mobile",
-  //   "shopify",
-  //   "ios-retail",
-  //   "simon-says-rn",
-  //   "docusaurus",
-  //   "hydrogren",
-  //   "oxygen",
+  "shopify",
+  "hydrogren",
+  "oxygen",
+  "aasdfas",
 ];
 
 export const DragToSortList: React.FC = () => {
@@ -66,7 +64,6 @@ const SNAP_POINTS = DATA.map((_, index) => [
 ]).flat();
 
 // Add top padding
-// Haptic feedback
 // Update order of list when pan gesture ends so that next animation occurs with reset values
 
 const Row = ({
@@ -89,6 +86,23 @@ const Row = ({
   const dragOffsetY = useSharedValue(0);
   const dragging = useSharedValue(false);
   const zIndex = useSharedValue(0);
+  const hapticed = useSharedValue(false);
+
+  const provideHapticFeedback = (insideZone: boolean) => {
+    "worklet";
+
+    if (insideZone) {
+      if (!hapticed.value) {
+        runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Medium);
+        hapticed.value = true;
+      }
+    } else {
+      if (hapticed.value) {
+        runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Medium);
+        hapticed.value = false;
+      }
+    }
+  };
 
   // Observe dragAbsY value (produced from the dragging row pan gesture) and animate up/down the other rows
   useAnimatedReaction(
@@ -113,6 +127,8 @@ const Row = ({
         } else {
           offsetY.value = withTiming(0);
         }
+
+        provideHapticFeedback(isRowInsideDraggedZone);
       }
       // Moved drag row down, so move my (index) row up
       // Drag row is moving BELOW the initial drag row starting position, regardless of whether it's up or down
@@ -128,6 +144,8 @@ const Row = ({
         } else {
           offsetY.value = withTiming(0);
         }
+
+        provideHapticFeedback(isRowInsideDraggedZone);
       }
     }
   );
@@ -155,10 +173,10 @@ const Row = ({
 
       let snapPoint = snapPoints(dragOffsetY.value, 0, SNAP_POINTS);
 
-      if (dragOffsetY.value > (DATA.length - index) * ROW_HEIGHT) {
+      if (dragOffsetY.value >= (DATA.length - index - 1) * ROW_HEIGHT) {
         // Drag row is outside bottom list bounds
         snapPoint = (DATA.length - index - 1) * ROW_HEIGHT;
-      } else if (dragOffsetY.value < -index * ROW_HEIGHT) {
+      } else if (dragOffsetY.value <= -index * ROW_HEIGHT) {
         // Drag row is outside top list bounds
         snapPoint = -index * ROW_HEIGHT;
       }
