@@ -4,148 +4,72 @@ import Animated, {
   runOnJS,
   useAnimatedReaction,
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { Colors, snapPoints, Spacing } from "../utils";
+import { Colors, Spacing, clamp } from "../utils";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
-const Images = {
-  profile: require("../../assets/docusaurus.png"),
-};
-
-const DATA = [
-  "arrive-client",
-  "ios",
-  "pos-next-react-native",
-  "media-db-rn",
-  "animations-rn",
-  "memory-matching-game-rn",
-  "balance-mobile",
-  "android",
-  "shopify",
-  "hydrogren",
-  "oxygen",
-  "aasdfas",
-];
-
 export const DragToSortList: React.FC = () => {
-  const dragAbsY = useSharedValue(0);
-  const dragIndex = useSharedValue(-1);
+  const rowState = useSharedValue<State>(createInitialState());
 
   return (
     <Animated.ScrollView
       style={{ backgroundColor: Colors.SurfaceForegroundPressed }}
       contentContainerStyle={{
-        // marginVertical: Spacing.defaultMargin,
         backgroundColor: Colors.SurfaceForegroundPressed,
       }}
     >
       {DATA.map((val, index) => (
-        <Row
-          key={val}
-          index={index}
-          title={val}
-          dragAbsY={dragAbsY}
-          dragIndex={dragIndex}
-        />
+        <Row key={val} initialIndex={index} id={val} rowState={rowState} />
       ))}
     </Animated.ScrollView>
   );
 };
 
-const ROW_HEIGHT = 60;
-const SNAP_POINTS = DATA.map((_, index) => [
-  index * ROW_HEIGHT,
-  -index * ROW_HEIGHT,
-]).flat();
-
-// Add top padding
-// Update order of list when pan gesture ends so that next animation occurs with reset values
-
 const Row = ({
-  index,
-  title,
-  dragIndex,
-  dragAbsY,
+  initialIndex,
+  id,
+  rowState,
 }: {
-  index: number;
-  title: string;
-  dragAbsY: Animated.SharedValue<number>;
-  dragIndex: Animated.SharedValue<number>;
+  initialIndex: number;
+  id: string;
+  rowState: Animated.SharedValue<State>;
 }) => {
-  // Values for handling the non-dragging rows
-  const offsetY = useSharedValue(0);
-  const dragStartAbsY = useDerivedValue(() => dragIndex.value * ROW_HEIGHT);
+  const top = useSharedValue(rowState.value[id] * ROW_HEIGHT);
 
-  // Values for handling the dragging row
-  const dragStartOffsetY = useSharedValue(0);
-  const dragOffsetY = useSharedValue(0);
   const dragging = useSharedValue(false);
-  const zIndex = useSharedValue(0);
-  const hapticed = useSharedValue(false);
+  const startDragPosition = useSharedValue(0);
 
-  const provideHapticFeedback = (insideZone: boolean) => {
+  // Swap the position index of the dragging row from initial to target index
+  // Swapping the dragged row index is going to in turn swap the non-drag (target index) row to the previous dragged row index
+  const updateRowPositionIndex = (from: number, to: number) => {
     "worklet";
 
-    if (insideZone) {
-      if (!hapticed.value) {
-        runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Medium);
-        hapticed.value = true;
+    const newState = Object.assign({}, rowState.value);
+    Object.entries(rowState.value).forEach(([id, idx]) => {
+      if (idx === from) {
+        newState[id] = to;
       }
-    } else {
-      if (hapticed.value) {
-        runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Medium);
-        hapticed.value = false;
+      if (idx === to) {
+        newState[id] = from;
       }
-    }
+    });
+
+    return newState;
   };
 
-  // Observe dragAbsY value (produced from the dragging row pan gesture) and animate up/down the other rows
+  // Animate other non-dragging rows based on the index-swapping calculations done by the dragging row gesture
   useAnimatedReaction(
-    () => dragAbsY.value,
-    (dragEndPos) => {
-      if (dragIndex.value === index || dragIndex.value === -1) return;
-
-      const dragStartPos = dragStartAbsY.value;
-      const dragDelta = dragStartPos - dragEndPos;
-
-      // Moved drag row up, so move my (index) row down
-      // Drag row is moving ABOVE the initial drag row starting position, regardless of whether it's up or down
-      if (dragDelta > 0) {
-        // Determine the position where the row is deemed to be within the dragged zone
-        const rowActivePos = index * ROW_HEIGHT + ROW_HEIGHT / 2;
-        const isRowInsideDraggedZone =
-          dragEndPos <= rowActivePos && dragStartPos >= rowActivePos;
-
-        // If the row is positioned inside the drag zone, then move it down; Else, move it back to origin
-        if (isRowInsideDraggedZone) {
-          offsetY.value = withTiming(ROW_HEIGHT);
-        } else {
-          offsetY.value = withTiming(0);
+    () => rowState.value[id],
+    (currIndex, prevIndex) => {
+      if (currIndex !== prevIndex && prevIndex !== null) {
+        if (!dragging.value) {
+          top.value = withTiming(currIndex * ROW_HEIGHT);
+          runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Medium);
         }
-
-        provideHapticFeedback(isRowInsideDraggedZone);
-      }
-      // Moved drag row down, so move my (index) row up
-      // Drag row is moving BELOW the initial drag row starting position, regardless of whether it's up or down
-      else {
-        // Determine the position where the row is deemed to be within the dragged zone
-        const rowActivePos = index * ROW_HEIGHT - ROW_HEIGHT / 2;
-        const isRowInsideDraggedZone =
-          dragStartPos <= rowActivePos && dragEndPos >= rowActivePos;
-
-        // If the row is positioned inside the drag zone, then move it up; Else, move it back to origin
-        if (isRowInsideDraggedZone) {
-          offsetY.value = withTiming(-ROW_HEIGHT);
-        } else {
-          offsetY.value = withTiming(0);
-        }
-
-        provideHapticFeedback(isRowInsideDraggedZone);
       }
     }
   );
@@ -154,46 +78,38 @@ const Row = ({
   const panGesture = Gesture.Pan()
     .onStart(() => {
       dragging.value = true;
-      dragIndex.value = index;
-      dragStartOffsetY.value = dragOffsetY.value;
-      zIndex.value = 1;
+      startDragPosition.value = rowState.value[id] * ROW_HEIGHT;
     })
     .onUpdate((e) => {
-      dragOffsetY.value = dragStartOffsetY.value + e.translationY;
-      dragAbsY.value = dragStartAbsY.value + dragOffsetY.value;
+      // Update position of dragging row to follow pan gesture
+      const absY = e.absoluteY - NAV_BAR_HEIGHT;
+      top.value = withTiming(absY, { duration: 16 });
+
+      // Calculate current y position of the dragged row
+      // Since our rows are positioned absolutely, when we change its top position, its translateY offset will be reset to 0
+      // So offsetY is not a cumulation from the initial starting position
+      const offsetY = e.translationY;
+      const y = startDragPosition.value + offsetY + ROW_HEIGHT / 2 + 5;
+
+      // Update positions of other non-dragging rows
+      const currentIndex = rowState.value[id];
+      const nextIndex = clamp(Math.floor(y / ROW_HEIGHT), 0, DATA.length - 1);
+      if (nextIndex !== currentIndex) {
+        rowState.value = updateRowPositionIndex(currentIndex, nextIndex);
+      }
     })
     .onEnd(() => {
-      const snapToPoint = (p: number) => {
-        "worklet";
-        dragOffsetY.value = withTiming(p, undefined, () => {
-          dragging.value = false;
-          zIndex.value = 0;
-        });
-      };
-
-      let snapPoint = snapPoints(dragOffsetY.value, 0, SNAP_POINTS);
-
-      if (dragOffsetY.value >= (DATA.length - index - 1) * ROW_HEIGHT) {
-        // Drag row is outside bottom list bounds
-        snapPoint = (DATA.length - index - 1) * ROW_HEIGHT;
-      } else if (dragOffsetY.value <= -index * ROW_HEIGHT) {
-        // Drag row is outside top list bounds
-        snapPoint = -index * ROW_HEIGHT;
-      }
-
-      snapToPoint(snapPoint);
+      top.value = withTiming(rowState.value[id] * ROW_HEIGHT, undefined, () => {
+        dragging.value = false;
+      });
     });
 
   const aStyle = useAnimatedStyle(() => {
     return {
-      transform: [
-        {
-          translateY:
-            dragIndex.value === index ? dragOffsetY.value : offsetY.value,
-        },
-      ],
+      top: top.value,
+      zIndex: dragging.value ? 1 : 0,
       shadowOpacity: dragging.value ? 0.5 : 0,
-      zIndex: zIndex.value,
+      opacity: dragging.value ? 0.7 : 1,
     };
   });
 
@@ -201,6 +117,9 @@ const Row = ({
     <Animated.View
       style={[
         {
+          position: "absolute",
+          left: 0,
+          right: 0,
           shadowRadius: 2,
           shadowColor: "#171717",
           shadowOffset: { height: 0, width: 0 },
@@ -235,9 +154,9 @@ const Row = ({
               marginBottom: 2,
             }}
           >
-            {`Docusaurus ${index}`}
+            {`Docusaurus ${initialIndex}`}
           </Text>
-          <Text style={{ fontWeight: "600", fontSize: 16 }}>{title}</Text>
+          <Text style={{ fontWeight: "600", fontSize: 16 }}>{id}</Text>
         </View>
 
         <GestureDetector gesture={panGesture}>
@@ -252,4 +171,36 @@ const Row = ({
       </View>
     </Animated.View>
   );
+};
+
+const Images = {
+  profile: require("../../assets/docusaurus.png"),
+};
+
+const DATA = [
+  "arrive-client",
+  "ios",
+  "pos-next-react-native",
+  "media-db-rn",
+  "animations-rn",
+  "memory-matching-game-rn",
+  "balance-mobile",
+  "android",
+  "shopify",
+  "hydrogren",
+  "oxygen",
+  "reanimated",
+];
+
+const ROW_HEIGHT = 60;
+const NAV_BAR_HEIGHT = 111;
+
+type State = Record<string, number>;
+
+const createInitialState = () => {
+  const posIdxForId: State = {};
+  DATA.forEach((val, index) => {
+    posIdxForId[val] = index;
+  });
+  return posIdxForId;
 };
