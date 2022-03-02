@@ -12,10 +12,11 @@ import TwitterProfileView from "../TwitterProfile";
 import FloatingActionButton from "../FloatingActionButton";
 import InstagramBookmark from "../InstagramBookmark";
 import AppleMail from "../AppleMail";
+import DragToSortList from "../DragToSortList";
+import SlackViewPager from "../SlackViewPager";
 import { InterpolateColors } from "../Fundamentals/Reanimated/InterpolateColors";
 import { InterpolateScrollView } from "../Fundamentals/Reanimated/InterpolateScrollView";
 import { Colors, Spacing } from "./theme";
-import DragToSortList from "../DragToSortList";
 
 type StackRouteParamList = {
   Home: undefined;
@@ -30,6 +31,7 @@ type StackRouteParamList = {
   "Interpolate ScrollView": undefined;
   "Interpolate Colors": undefined;
   "Show More Text": undefined;
+  "Slack View Pager": undefined;
   "Twitter Profile": undefined;
 };
 
@@ -44,6 +46,7 @@ const ANIMATIONS: Screen[] = [
   "Interpolate ScrollView",
   "Interpolate Colors",
   "Show More Text",
+  "Slack View Pager",
   "Twitter Profile",
 ];
 
@@ -67,6 +70,7 @@ export const Routes: React.FC = () => {
         />
         <Stack.Screen name="Instagram Bookmark" component={InstagramBookmark} />
         <Stack.Screen name="Show More Text" component={ShowMoreText} />
+        <Stack.Screen name="Slack View Pager" component={SlackViewPager} />
         <Stack.Screen
           name="Twitter Profile"
           component={TwitterProfileView}
