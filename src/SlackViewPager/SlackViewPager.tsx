@@ -1,7 +1,16 @@
-import React from "react";
-import { Dimensions, Image, Pressable, Text, View } from "react-native";
+import React, { useRef } from "react";
+import {
+  Dimensions,
+  Image,
+  LayoutChangeEvent,
+  Pressable,
+  Text,
+  View,
+} from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import Animated, {
+  runOnUI,
+  useAnimatedRef,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -14,12 +23,6 @@ export const SlackViewPager: React.FC = () => {
       <PagerMenu />
       <Animated.ScrollView
         style={{ backgroundColor: Colors.SurfaceForeground }}
-        contentContainerStyle={
-          {
-            // backgroundColor: Colors.SurfaceForeground,
-            // backgroundColor: "red",
-          }
-        }
         horizontal
         pagingEnabled
         scrollEventThrottle={16}
@@ -39,10 +42,37 @@ export const SlackViewPager: React.FC = () => {
   );
 };
 
+type MenuOptionDimensions = Record<number, { x: number; w: number }>;
+type UpdateDimensionRequest = { index: number; x: number; w: number };
+
 const PagerMenu = () => {
   const options = DATA.map((d) => d.sectionTitle);
 
+  const dimensionsForIndex = useRef<MenuOptionDimensions>({});
+  const updateDimensionsQueue = useRef<UpdateDimensionRequest[]>([]);
+  const isUpdatingDimensions = useRef(false);
+
+  const updateDimensions = (index: number, w: number, x: number) => {
+    const recurse = () => {
+      const dimension = updateDimensionsQueue.current.pop();
+      if (dimension === undefined) {
+        isUpdatingDimensions.current = false;
+        return;
+      }
+
+      isUpdatingDimensions.current = true;
+      dimensionsForIndex.current[index] = { x, w };
+      recurse();
+    };
+
+    updateDimensionsQueue.current.push({ index, w, x });
+    if (!isUpdatingDimensions.current) {
+      recurse();
+    }
+  };
+
   const indicatorX = useSharedValue(0);
+
   const indicatorAnimatedStyle = useAnimatedStyle(() => {
     return {
       left: indicatorX.value,
@@ -59,12 +89,9 @@ const PagerMenu = () => {
       }}
     >
       <ScrollView
-        contentContainerStyle={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
+        contentContainerStyle={{ flexGrow: 1 }}
         horizontal
+        showsHorizontalScrollIndicator={false}
       >
         {options.map((title, index) => {
           return (
@@ -72,8 +99,15 @@ const PagerMenu = () => {
               key={`${title} + ${index}`}
               index={index}
               title={title}
+              onLayout={(e) => {
+                const w = e.nativeEvent.layout.width;
+                const x = e.nativeEvent.layout.x;
+                updateDimensions(index, w, x);
+              }}
               onPress={() => {
-                indicatorX.value = withTiming(216);
+                indicatorX.value = withTiming(
+                  dimensionsForIndex.current[index].x
+                );
               }}
             />
           );
@@ -100,10 +134,12 @@ const PagerMenu = () => {
 const OptionButton = ({
   index,
   title,
+  onLayout,
   onPress,
 }: {
   index: number;
   title: string;
+  onLayout: (event: LayoutChangeEvent) => void;
   onPress: () => void;
 }) => {
   return (
@@ -115,12 +151,7 @@ const OptionButton = ({
         marginHorizontal: Spacing.s,
         backgroundColor: "pink",
       }}
-      onLayout={(e) => {
-        const w = e.nativeEvent.layout.width;
-        const x = e.nativeEvent.layout.x;
-        // console.log("==== Value of w for index:", index, w);
-        console.log("==== Value of x for index:", index, x);
-      }}
+      onLayout={onLayout}
       onPress={onPress}
     >
       <Text>{title}</Text>
@@ -141,10 +172,7 @@ const Page = ({
 }) => {
   return (
     <ScrollView
-      style={{
-        width: WIDTH,
-        // backgroundColor: "pink"
-      }}
+      style={{ width: WIDTH }}
       contentContainerStyle={{
         paddingHorizontal: Spacing.l,
         paddingTop: Spacing.l,
@@ -212,4 +240,16 @@ const DATA: DataSource[] = [
       "https://cdn.pixabay.com/photo/2017/08/22/11/33/autumn-2668630_960_720.jpg",
     count: 3,
   },
+  //   {
+  //     sectionTitle: "Really long title to see how this will fit",
+  //     profileUri:
+  //       "https://cdn.pixabay.com/photo/2017/08/22/11/33/autumn-2668630_960_720.jpg",
+  //     count: 13,
+  //   },
+  //   {
+  //     sectionTitle: "Hello, how are you?",
+  //     profileUri:
+  //       "https://cdn.pixabay.com/photo/2017/08/22/11/33/autumn-2668630_960_720.jpg",
+  //     count: 13,
+  //   },
 ];
