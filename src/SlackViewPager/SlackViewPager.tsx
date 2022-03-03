@@ -11,7 +11,9 @@ import {
   ScrollView,
 } from "react-native";
 import Animated, {
+  Extrapolate,
   interpolate,
+  interpolateColor,
   useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
@@ -34,7 +36,7 @@ export const SlackViewPager: React.FC = () => {
       <PagerMenu
         scrollX={scrollX}
         onSelectOption={(index) => {
-          scrollRef.current?.scrollTo({ x: index * WIDTH });
+          scrollRef.current?.scrollTo({ x: index * WIDTH, animated: true });
         }}
       />
       <Animated.ScrollView
@@ -62,6 +64,9 @@ export const SlackViewPager: React.FC = () => {
 
 type MenuOptionDimensions = Record<number, { x: number; w: number }>;
 type UpdateDimensionRequest = { index: number; x: number; w: number };
+
+// indicator translation when menu is scrollable
+// dynamic way to calculate width and x of each menu item options
 
 const PagerMenu = ({
   scrollX,
@@ -132,6 +137,7 @@ const PagerMenu = ({
           return (
             <OptionButton
               key={`${title} + ${index}`}
+              scrollX={scrollX}
               index={index}
               title={title}
               onLayout={(e) => {
@@ -170,16 +176,42 @@ const PagerMenu = ({
 };
 
 const OptionButton = ({
+  scrollX,
   index,
   title,
   onLayout,
   onPress,
 }: {
+  scrollX: Animated.SharedValue<number>;
   index: number;
   title: string;
   onLayout: (event: LayoutChangeEvent) => void;
   onPress: () => void;
 }) => {
+  const aStyle = useAnimatedStyle(() => {
+    const color = interpolateColor(
+      scrollX.value,
+      [(index - 1) * WIDTH, index * WIDTH, (index + 1) * WIDTH],
+      [Colors.TextNeutral, Colors.TextInteractive, Colors.TextNeutral]
+    );
+
+    const scale = interpolate(
+      scrollX.value,
+      [(index - 1) * WIDTH, index * WIDTH, (index + 1) * WIDTH],
+      [1, 1.1, 1],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      color,
+      transform: [
+        {
+          scale,
+        },
+      ],
+    };
+  });
+
   return (
     <Pressable
       style={{
@@ -187,12 +219,12 @@ const OptionButton = ({
         justifyContent: "center",
         alignItems: "center",
         marginHorizontal: Spacing.s,
-        backgroundColor: "pink",
+        // backgroundColor: "pink",
       }}
       onLayout={onLayout}
       onPress={onPress}
     >
-      <Text>{title}</Text>
+      <Animated.Text style={aStyle}>{title}</Animated.Text>
     </Pressable>
   );
 };
