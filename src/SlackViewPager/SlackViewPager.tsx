@@ -1,4 +1,6 @@
-import React, { useRef } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import React, { createRef, useRef } from "react";
 import {
   Dimensions,
   Image,
@@ -6,26 +8,42 @@ import {
   Pressable,
   Text,
   View,
+  ScrollView,
 } from "react-native";
-import { ScrollView } from "react-native-gesture-handler";
 import Animated, {
-  runOnUI,
+  interpolate,
   useAnimatedRef,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
-  withTiming,
 } from "react-native-reanimated";
 import { Colors, Spacing } from "../utils";
 
 export const SlackViewPager: React.FC = () => {
+  const scrollX = useSharedValue(0);
+  const scrollRef = useAnimatedRef<any>();
+
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      scrollX.value = e.contentOffset.x;
+    },
+  });
+
   return (
     <>
-      <PagerMenu />
+      <PagerMenu
+        scrollX={scrollX}
+        onSelectOption={(index) => {
+          scrollRef.current?.scrollTo({ x: index * WIDTH });
+        }}
+      />
       <Animated.ScrollView
         style={{ backgroundColor: Colors.SurfaceForeground }}
+        ref={scrollRef}
         horizontal
         pagingEnabled
         scrollEventThrottle={16}
+        onScroll={onScroll}
       >
         {DATA.map((data, index) => {
           return (
@@ -45,7 +63,13 @@ export const SlackViewPager: React.FC = () => {
 type MenuOptionDimensions = Record<number, { x: number; w: number }>;
 type UpdateDimensionRequest = { index: number; x: number; w: number };
 
-const PagerMenu = () => {
+const PagerMenu = ({
+  scrollX,
+  onSelectOption,
+}: {
+  scrollX: Animated.SharedValue<number>;
+  onSelectOption: (index: number) => void;
+}) => {
   const options = DATA.map((d) => d.sectionTitle);
 
   const dimensionsForIndex = useRef<MenuOptionDimensions>({});
@@ -71,11 +95,22 @@ const PagerMenu = () => {
     }
   };
 
-  const indicatorX = useSharedValue(0);
-
   const indicatorAnimatedStyle = useAnimatedStyle(() => {
+    const left = interpolate(
+      scrollX.value,
+      [0, WIDTH, 2 * WIDTH, 3 * WIDTH],
+      [4, 133, 215, 330]
+    );
+
+    const width = interpolate(
+      scrollX.value,
+      [0, WIDTH, 2 * WIDTH, 3 * WIDTH],
+      [121, 74, 106, 80]
+    );
+
     return {
-      left: indicatorX.value,
+      left,
+      width,
     };
   });
 
@@ -102,12 +137,15 @@ const PagerMenu = () => {
               onLayout={(e) => {
                 const w = e.nativeEvent.layout.width;
                 const x = e.nativeEvent.layout.x;
-                updateDimensions(index, w, x);
+                console.log("==== Value of w for index:", index, w);
+                // console.log("==== Value of x for index:", index, x);
+                // updateDimensions(index, w, x);
               }}
               onPress={() => {
-                indicatorX.value = withTiming(
-                  dimensionsForIndex.current[index].x
-                );
+                // indicatorX.value = withTiming(
+                //   dimensionsForIndex.current[index].x
+                // );
+                onSelectOption(index);
               }}
             />
           );
