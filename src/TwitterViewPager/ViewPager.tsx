@@ -21,7 +21,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { clamp, Colors, Spacing } from "../utils";
 
-export const SlackViewPager: React.FC = () => {
+export const ViewPager: React.FC = () => {
   const scrollX = useSharedValue(0);
   const scrollRef = useAnimatedRef<any>();
 
@@ -72,7 +72,6 @@ const PagerMenu = ({
   const options = DATA.map((d) => d.sectionTitle);
 
   const menuScrollX = useSharedValue(0);
-
   const onScroll = useAnimatedScrollHandler({
     onScroll: (e) => {
       menuScrollX.value = e.contentOffset.x;
@@ -134,7 +133,7 @@ const PagerMenu = ({
       }}
     >
       <Animated.ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={{ flexGrow: 1 }} // Allows content to take up full even space when it's not overflowing/requires scrolling (e.g. when there's just two options, we want both to fill the entire width equally)
         horizontal
         showsHorizontalScrollIndicator={false}
         scrollEventThrottle={16}
