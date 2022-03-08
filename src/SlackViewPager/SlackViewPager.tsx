@@ -14,12 +14,16 @@ import Animated, {
   Extrapolate,
   interpolate,
   interpolateColor,
+  runOnJS,
+  useAnimatedProps,
+  useAnimatedReaction,
   useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
 } from "react-native-reanimated";
-import { Colors, Spacing } from "../utils";
+import { clamp, Colors, Spacing } from "../utils";
 
 export const SlackViewPager: React.FC = () => {
   const scrollX = useSharedValue(0);
@@ -34,7 +38,7 @@ export const SlackViewPager: React.FC = () => {
   return (
     <>
       <PagerMenu
-        scrollX={scrollX}
+        contentScrollX={scrollX}
         onSelectOption={(index) => {
           scrollRef.current?.scrollTo({ x: index * WIDTH, animated: true });
         }}
@@ -62,59 +66,58 @@ export const SlackViewPager: React.FC = () => {
   );
 };
 
-type MenuOptionDimensions = Record<number, { x: number; w: number }>;
-type UpdateDimensionRequest = { index: number; x: number; w: number };
-
-// indicator translation when menu is scrollable
-// dynamic way to calculate width and x of each menu item options
-
 const PagerMenu = ({
-  scrollX,
+  contentScrollX,
   onSelectOption,
 }: {
-  scrollX: Animated.SharedValue<number>;
+  contentScrollX: Animated.SharedValue<number>;
   onSelectOption: (index: number) => void;
 }) => {
   const options = DATA.map((d) => d.sectionTitle);
 
-  const dimensionsForIndex = useRef<MenuOptionDimensions>({});
-  const updateDimensionsQueue = useRef<UpdateDimensionRequest[]>([]);
-  const isUpdatingDimensions = useRef(false);
+  const menuScrollX = useSharedValue(0);
 
-  const updateDimensions = (index: number, w: number, x: number) => {
-    const recurse = () => {
-      const dimension = updateDimensionsQueue.current.pop();
-      if (dimension === undefined) {
-        isUpdatingDimensions.current = false;
-        return;
-      }
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      menuScrollX.value = e.contentOffset.x;
+    },
+  });
 
-      isUpdatingDimensions.current = true;
-      dimensionsForIndex.current[index] = { x, w };
-      recurse();
+  const scrollViewAnimatedProps = useAnimatedProps(() => {
+    const x = interpolate(
+      contentScrollX.value,
+      MenuDimensions.map((_, index) => index * WIDTH),
+      MenuDimensions.map((val) => {
+        const total = val.x + val.w;
+        return Math.floor(total / WIDTH) * val.x;
+      })
+    );
+
+    const last = MenuDimensions[MenuDimensions.length - 1];
+    const menuContentLength = last.x + last.w;
+    const factor = Math.floor(menuContentLength / WIDTH);
+    const max = Math.abs(menuContentLength - factor * WIDTH);
+
+    return {
+      contentOffset: { x: clamp(x, 0, max), y: 0 },
     };
-
-    updateDimensionsQueue.current.push({ index, w, x });
-    if (!isUpdatingDimensions.current) {
-      recurse();
-    }
-  };
+  });
 
   const indicatorAnimatedStyle = useAnimatedStyle(() => {
     const left = interpolate(
-      scrollX.value,
-      [0, WIDTH, 2 * WIDTH, 3 * WIDTH],
-      [4, 133, 215, 330]
+      contentScrollX.value,
+      MenuDimensions.map((_, index) => index * WIDTH),
+      MenuDimensions.map((val) => val.x)
     );
 
     const width = interpolate(
-      scrollX.value,
-      [0, WIDTH, 2 * WIDTH, 3 * WIDTH],
-      [121, 74, 106, 80]
+      contentScrollX.value,
+      MenuDimensions.map((_, index) => index * WIDTH),
+      MenuDimensions.map((val) => val.w)
     );
 
     return {
-      left,
+      left: left - menuScrollX.value,
       width,
     };
   });
@@ -128,35 +131,36 @@ const PagerMenu = ({
         backgroundColor: Colors.SurfaceForeground,
       }}
     >
-      <ScrollView
+      <Animated.ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
         horizontal
         showsHorizontalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={onScroll}
+        animatedProps={scrollViewAnimatedProps}
       >
         {options.map((title, index) => {
           return (
             <OptionButton
               key={`${title} + ${index}`}
-              scrollX={scrollX}
+              contentScrollX={contentScrollX}
               index={index}
               title={title}
               onLayout={(e) => {
                 const w = e.nativeEvent.layout.width;
                 const x = e.nativeEvent.layout.x;
-                console.log("==== Value of w for index:", index, w);
+                // console.log("==== Value of w for index:", index, w);
                 // console.log("==== Value of x for index:", index, x);
                 // updateDimensions(index, w, x);
               }}
               onPress={() => {
-                // indicatorX.value = withTiming(
-                //   dimensionsForIndex.current[index].x
-                // );
                 onSelectOption(index);
+                // scrollRef.current.scrollTo({ x: 505 });
               }}
             />
           );
         })}
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Indicator */}
       <Animated.View
@@ -176,13 +180,13 @@ const PagerMenu = ({
 };
 
 const OptionButton = ({
-  scrollX,
+  contentScrollX,
   index,
   title,
   onLayout,
   onPress,
 }: {
-  scrollX: Animated.SharedValue<number>;
+  contentScrollX: Animated.SharedValue<number>;
   index: number;
   title: string;
   onLayout: (event: LayoutChangeEvent) => void;
@@ -190,13 +194,13 @@ const OptionButton = ({
 }) => {
   const aStyle = useAnimatedStyle(() => {
     const color = interpolateColor(
-      scrollX.value,
+      contentScrollX.value,
       [(index - 1) * WIDTH, index * WIDTH, (index + 1) * WIDTH],
       [Colors.TextNeutral, Colors.TextInteractive, Colors.TextNeutral]
     );
 
     const scale = interpolate(
-      scrollX.value,
+      contentScrollX.value,
       [(index - 1) * WIDTH, index * WIDTH, (index + 1) * WIDTH],
       [1, 1.1, 1],
       Extrapolate.CLAMP
@@ -206,7 +210,7 @@ const OptionButton = ({
       color,
       transform: [
         {
-          scale,
+          scale: 1,
         },
       ],
     };
@@ -219,7 +223,7 @@ const OptionButton = ({
         justifyContent: "center",
         alignItems: "center",
         marginHorizontal: Spacing.s,
-        // backgroundColor: "pink",
+        backgroundColor: "pink",
       }}
       onLayout={onLayout}
       onPress={onPress}
@@ -279,6 +283,50 @@ const Page = ({
   );
 };
 
+const MenuDimensions: { x: number; w: number }[] = [
+  {
+    x: 4,
+    w: 81,
+  },
+  {
+    x: 93,
+    w: 33,
+  },
+  {
+    x: 134,
+    w: 66,
+  },
+  {
+    x: 209,
+    w: 40,
+  },
+  {
+    x: 256,
+    w: 241,
+  },
+  {
+    x: 505,
+    w: 126,
+  },
+
+  //   {
+  //     x: 4,
+  //     w: 121,
+  //   },
+  //   {
+  //     x: 133,
+  //     w: 74,
+  //   },
+  //   {
+  //     x: 215,
+  //     w: 106,
+  //   },
+  //   {
+  //     x: 330,
+  //     w: 80,
+  //   },
+];
+
 type DataSource = {
   sectionTitle: string;
   profileUri: string;
@@ -310,16 +358,16 @@ const DATA: DataSource[] = [
       "https://cdn.pixabay.com/photo/2017/08/22/11/33/autumn-2668630_960_720.jpg",
     count: 3,
   },
-  //   {
-  //     sectionTitle: "Really long title to see how this will fit",
-  //     profileUri:
-  //       "https://cdn.pixabay.com/photo/2017/08/22/11/33/autumn-2668630_960_720.jpg",
-  //     count: 13,
-  //   },
-  //   {
-  //     sectionTitle: "Hello, how are you?",
-  //     profileUri:
-  //       "https://cdn.pixabay.com/photo/2017/08/22/11/33/autumn-2668630_960_720.jpg",
-  //     count: 13,
-  //   },
+  {
+    sectionTitle: "Really long title to see how this will fit",
+    profileUri:
+      "https://cdn.pixabay.com/photo/2017/08/22/11/33/autumn-2668630_960_720.jpg",
+    count: 13,
+  },
+  {
+    sectionTitle: "Hello, how are you?",
+    profileUri:
+      "https://cdn.pixabay.com/photo/2017/08/22/11/33/autumn-2668630_960_720.jpg",
+    count: 13,
+  },
 ];
