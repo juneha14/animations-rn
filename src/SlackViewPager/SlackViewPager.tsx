@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import React, { createRef, useRef } from "react";
+import React from "react";
 import {
   Dimensions,
   Image,
-  LayoutChangeEvent,
   Pressable,
   Text,
   View,
@@ -14,13 +13,10 @@ import Animated, {
   Extrapolate,
   interpolate,
   interpolateColor,
-  runOnJS,
   useAnimatedProps,
-  useAnimatedReaction,
   useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
 } from "react-native-reanimated";
 import { clamp, Colors, Spacing } from "../utils";
@@ -83,37 +79,43 @@ const PagerMenu = ({
     },
   });
 
+  const contentInterpolateInputRange = DATA.map((_, index) => index * WIDTH);
+
   const scrollViewAnimatedProps = useAnimatedProps(() => {
-    const x = interpolate(
+    const last = DATA[DATA.length - 1].layout;
+    const maxOffset = Math.abs(last.x + last.w + Spacing.s * 2 - WIDTH);
+    const outputRange = DATA.map(({ layout }, index) => {
+      if (index === 0) {
+        return 0;
+      }
+
+      const offset = (DATA[index - 1].layout.x + layout.x) / 2;
+      return clamp(offset, 0, maxOffset);
+    });
+
+    const offsetX = interpolate(
       contentScrollX.value,
-      MenuDimensions.map((_, index) => index * WIDTH),
-      MenuDimensions.map((val) => {
-        const total = val.x + val.w;
-        return Math.floor(total / WIDTH) * val.x;
-      })
+      contentInterpolateInputRange,
+      outputRange,
+      Extrapolate.CLAMP
     );
 
-    const last = MenuDimensions[MenuDimensions.length - 1];
-    const menuContentLength = last.x + last.w;
-    const factor = Math.floor(menuContentLength / WIDTH);
-    const max = Math.abs(menuContentLength - factor * WIDTH);
-
     return {
-      contentOffset: { x: clamp(x, 0, max), y: 0 },
+      contentOffset: { x: offsetX, y: 0 },
     };
   });
 
   const indicatorAnimatedStyle = useAnimatedStyle(() => {
     const left = interpolate(
       contentScrollX.value,
-      MenuDimensions.map((_, index) => index * WIDTH),
-      MenuDimensions.map((val) => val.x)
+      contentInterpolateInputRange,
+      DATA.map(({ layout }) => layout.x)
     );
 
     const width = interpolate(
       contentScrollX.value,
-      MenuDimensions.map((_, index) => index * WIDTH),
-      MenuDimensions.map((val) => val.w)
+      contentInterpolateInputRange,
+      DATA.map(({ layout }) => layout.w)
     );
 
     return {
@@ -125,7 +127,7 @@ const PagerMenu = ({
   return (
     <View
       style={{
-        height: 50,
+        height: 48,
         borderBottomWidth: 1,
         borderBottomColor: Colors.Border,
         backgroundColor: Colors.SurfaceForeground,
@@ -146,16 +148,8 @@ const PagerMenu = ({
               contentScrollX={contentScrollX}
               index={index}
               title={title}
-              onLayout={(e) => {
-                const w = e.nativeEvent.layout.width;
-                const x = e.nativeEvent.layout.x;
-                // console.log("==== Value of w for index:", index, w);
-                // console.log("==== Value of x for index:", index, x);
-                // updateDimensions(index, w, x);
-              }}
               onPress={() => {
                 onSelectOption(index);
-                // scrollRef.current.scrollTo({ x: 505 });
               }}
             />
           );
@@ -167,8 +161,7 @@ const PagerMenu = ({
         style={[
           {
             position: "absolute",
-            top: 48,
-            width: 50,
+            top: 46,
             height: 2,
             backgroundColor: Colors.IconInteractive,
           },
@@ -183,26 +176,24 @@ const OptionButton = ({
   contentScrollX,
   index,
   title,
-  onLayout,
   onPress,
 }: {
   contentScrollX: Animated.SharedValue<number>;
   index: number;
   title: string;
-  onLayout: (event: LayoutChangeEvent) => void;
   onPress: () => void;
 }) => {
   const aStyle = useAnimatedStyle(() => {
     const color = interpolateColor(
       contentScrollX.value,
       [(index - 1) * WIDTH, index * WIDTH, (index + 1) * WIDTH],
-      [Colors.TextNeutral, Colors.TextInteractive, Colors.TextNeutral]
+      [Colors.TextNeutral, Colors.IconInteractive, Colors.TextNeutral]
     );
 
     const scale = interpolate(
       contentScrollX.value,
       [(index - 1) * WIDTH, index * WIDTH, (index + 1) * WIDTH],
-      [1, 1.1, 1],
+      [1, 1.08, 1],
       Extrapolate.CLAMP
     );
 
@@ -210,7 +201,7 @@ const OptionButton = ({
       color,
       transform: [
         {
-          scale: 1,
+          scale,
         },
       ],
     };
@@ -223,17 +214,14 @@ const OptionButton = ({
         justifyContent: "center",
         alignItems: "center",
         marginHorizontal: Spacing.s,
-        backgroundColor: "pink",
+        paddingHorizontal: Spacing.s,
       }}
-      onLayout={onLayout}
       onPress={onPress}
     >
       <Animated.Text style={aStyle}>{title}</Animated.Text>
     </Pressable>
   );
 };
-
-const { width: WIDTH } = Dimensions.get("window");
 
 const Page = ({
   index,
@@ -283,91 +271,63 @@ const Page = ({
   );
 };
 
-const MenuDimensions: { x: number; w: number }[] = [
-  {
-    x: 4,
-    w: 81,
-  },
-  {
-    x: 93,
-    w: 33,
-  },
-  {
-    x: 134,
-    w: 66,
-  },
-  {
-    x: 209,
-    w: 40,
-  },
-  {
-    x: 256,
-    w: 241,
-  },
-  {
-    x: 505,
-    w: 126,
-  },
-
-  //   {
-  //     x: 4,
-  //     w: 121,
-  //   },
-  //   {
-  //     x: 133,
-  //     w: 74,
-  //   },
-  //   {
-  //     x: 215,
-  //     w: 106,
-  //   },
-  //   {
-  //     x: 330,
-  //     w: 80,
-  //   },
-];
+const { width: WIDTH } = Dimensions.get("window");
 
 type DataSource = {
   sectionTitle: string;
   profileUri: string;
   count: number;
+  layout: { x: number; w: number };
 };
 
 const DATA: DataSource[] = [
   {
-    sectionTitle: "Bookmarked",
+    sectionTitle: "Tweets",
     profileUri:
       "https://cdn.pixabay.com/photo/2016/09/16/15/56/manhattan-1674404_960_720.jpg",
-    count: 5,
+    count: 3,
+    layout: { x: 4, w: 54 },
+  },
+  {
+    sectionTitle: "Tweets & replies",
+    profileUri:
+      "https://cdn.pixabay.com/photo/2016/09/16/15/56/manhattan-1674404_960_720.jpg",
+    count: 9,
+    layout: { x: 66, w: 114.33 },
   },
   {
     sectionTitle: "Likes",
     profileUri:
       "https://cdn.pixabay.com/photo/2013/10/29/02/13/jardin-202150_960_720.jpg",
     count: 9,
+    layout: { x: 188.33, w: 41.33 },
+  },
+  {
+    sectionTitle: "Entertainment",
+    profileUri:
+      "https://cdn.pixabay.com/photo/2016/09/16/15/56/manhattan-1674404_960_720.jpg",
+    count: 12,
+    layout: { x: 237.66, w: 99.33 },
+  },
+  {
+    sectionTitle: "Bookmarked",
+    profileUri:
+      "https://cdn.pixabay.com/photo/2016/09/16/15/56/manhattan-1674404_960_720.jpg",
+    count: 5,
+    layout: { x: 345, w: 89 },
   },
   {
     sectionTitle: "Favourites",
     profileUri:
       "https://cdn.pixabay.com/photo/2020/06/20/02/56/dusk-5319496_960_720.jpg",
     count: 7,
+    layout: { x: 442, w: 74.33 },
   },
   {
     sectionTitle: "Saved",
     profileUri:
       "https://cdn.pixabay.com/photo/2017/08/22/11/33/autumn-2668630_960_720.jpg",
     count: 3,
-  },
-  {
-    sectionTitle: "Really long title to see how this will fit",
-    profileUri:
-      "https://cdn.pixabay.com/photo/2017/08/22/11/33/autumn-2668630_960_720.jpg",
-    count: 13,
-  },
-  {
-    sectionTitle: "Hello, how are you?",
-    profileUri:
-      "https://cdn.pixabay.com/photo/2017/08/22/11/33/autumn-2668630_960_720.jpg",
-    count: 13,
+    layout: { x: 524.33, w: 47.33 },
   },
 ];
