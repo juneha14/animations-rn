@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import {
   ScrollView,
@@ -27,6 +28,8 @@ export const AppleWeather: React.FC = () => {
       <HourlyForecast />
       <TenDayForecast />
       <OtherMeteorlogyInfo />
+      <UserActions />
+      <Footer />
     </ScrollView>
   );
 };
@@ -66,12 +69,14 @@ const Header = () => {
 interface SectionProps {
   headerTitle: string;
   headerLeftIcon?: JSX.Element;
+  showHeaderDivider?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
 const Section: React.FC<SectionProps> = ({
   headerTitle,
   headerLeftIcon,
+  showHeaderDivider = false,
   style,
   children,
 }) => {
@@ -106,13 +111,15 @@ const Section: React.FC<SectionProps> = ({
           </Text>
         </View>
 
-        <View
-          style={{
-            height: 0.5,
-            marginLeft: 12,
-            backgroundColor: Colors.BorderSubdued,
-          }}
-        />
+        {showHeaderDivider ? (
+          <View
+            style={{
+              height: 0.5,
+              marginLeft: 12,
+              backgroundColor: Colors.BorderSubdued,
+            }}
+          />
+        ) : null}
       </View>
       {children}
     </View>
@@ -121,7 +128,11 @@ const Section: React.FC<SectionProps> = ({
 
 const HourlyForecast = () => {
   return (
-    <Section headerTitle="Hourly Forecast" style={{ marginTop: 40 }}>
+    <Section
+      headerTitle="Hourly Forecast"
+      showHeaderDivider
+      style={{ marginTop: 40 }}
+    >
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         {[...Array(24).keys()].map((time) => {
           return (
@@ -178,6 +189,7 @@ const TenDayForecast = () => {
           size={15}
         />
       }
+      showHeaderDivider
       style={{ marginTop: Spacing.m }}
     >
       {[...Array(9).keys()].map((val) => {
@@ -294,6 +306,59 @@ const TenDayForecast = () => {
     </Section>
   );
 };
+
+type TenDayDataType = {
+  day: string;
+  weather: "sunny" | "cloudy" | "rainy";
+  temperature: { low: number; high: number };
+};
+const TEN_DAY_DATA: TenDayDataType[] = [
+  {
+    day: "Today",
+    weather: "sunny",
+    temperature: { low: 2, high: 7 },
+  },
+  {
+    day: "Thu",
+    weather: "sunny",
+    temperature: { low: 1, high: 7 },
+  },
+  {
+    day: "Fri",
+    weather: "rainy",
+    temperature: { low: 3, high: 6 },
+  },
+  {
+    day: "Sat",
+    weather: "rainy",
+    temperature: { low: 4, high: 7 },
+  },
+  {
+    day: "Sun",
+    weather: "sunny",
+    temperature: { low: 6, high: 9 },
+  },
+  {
+    day: "Mon",
+    weather: "cloudy",
+    temperature: { low: 2, high: 7 },
+  },
+  {
+    day: "Tue",
+    weather: "cloudy",
+    temperature: { low: 7, high: 9 },
+  },
+  {
+    day: "Wed",
+    weather: "rainy",
+    temperature: { low: 2, high: 7 },
+  },
+  {
+    day: "Thu",
+    weather: "sunny",
+    temperature: { low: 0, high: 12 },
+  },
+];
 
 const OtherMeteorlogyInfo = () => {
   return (
@@ -421,55 +486,90 @@ const Meteorology = ({
   );
 };
 
-type TenDayDataType = {
-  day: string;
-  weather: "sunny" | "cloudy" | "rainy";
-  temperature: { low: number; high: number };
+const UserActions = () => {
+  return (
+    <View style={{ marginTop: Spacing.m }}>
+      <View
+        style={{
+          height: 1,
+          backgroundColor: Colors.SurfaceBackgroundPressed,
+          opacity: 0.5,
+        }}
+      />
+      <ActionRow type="report" />
+      <ActionRow type="notification" />
+      <ActionRow type="maps" />
+    </View>
+  );
 };
-const TEN_DAY_DATA: TenDayDataType[] = [
-  {
-    day: "Today",
-    weather: "sunny",
-    temperature: { low: 2, high: 7 },
-  },
-  {
-    day: "Thu",
-    weather: "sunny",
-    temperature: { low: 1, high: 7 },
-  },
-  {
-    day: "Fri",
-    weather: "rainy",
-    temperature: { low: 3, high: 6 },
-  },
-  {
-    day: "Sat",
-    weather: "rainy",
-    temperature: { low: 4, high: 7 },
-  },
-  {
-    day: "Sun",
-    weather: "sunny",
-    temperature: { low: 6, high: 9 },
-  },
-  {
-    day: "Mon",
-    weather: "cloudy",
-    temperature: { low: 2, high: 7 },
-  },
-  {
-    day: "Tue",
-    weather: "cloudy",
-    temperature: { low: 7, high: 9 },
-  },
-  {
-    day: "Wed",
-    weather: "rainy",
-    temperature: { low: 2, high: 7 },
-  },
-  {
-    day: "Thu",
-    weather: "sunny",
-    temperature: { low: 0, high: 12 },
-  },
-];
+
+const ActionRow = ({ type }: { type: "report" | "notification" | "maps" }) => {
+  let title;
+  let icon;
+  switch (type) {
+    case "report": {
+      title = "Report an Issue";
+      icon = "ios-chatbox-outline";
+      break;
+    }
+    case "notification": {
+      title = "Turn On Notifications";
+      icon = "ios-notifications-outline";
+      break;
+    }
+    case "maps": {
+      title = "Open in Maps";
+      icon = "ios-open-outline";
+      break;
+    }
+  }
+  return (
+    <View>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          paddingVertical: 12,
+        }}
+      >
+        <Text style={{ color: Colors.SurfaceBackgroundPressed }}>{title}</Text>
+        <Ionicons name={icon as any} size={20} color={Palette.White} />
+      </View>
+
+      <View
+        style={{
+          height: 1,
+          backgroundColor: Colors.SurfaceBackgroundPressed,
+          opacity: 0.5,
+        }}
+      />
+    </View>
+  );
+};
+
+const Footer = () => {
+  return (
+    <View
+      style={{
+        justifyContent: "center",
+        alignItems: "center",
+        marginTop: Spacing.xl,
+      }}
+    >
+      <Text
+        style={{
+          color: Palette.White,
+          fontSize: 18,
+          fontWeight: "500",
+          marginBottom: Spacing.s,
+        }}
+      >
+        Weather for Toronto Rd
+      </Text>
+      <Text style={{ color: Palette.White, opacity: 0.5 }}>
+        Learn more about weather data and map data
+      </Text>
+    </View>
+  );
+};
