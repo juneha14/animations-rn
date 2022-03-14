@@ -5,6 +5,7 @@ import Animated, {
   useSharedValue,
   interpolate,
   Extrapolate,
+  useDerivedValue,
 } from "react-native-reanimated";
 import { Palette, Spacing, Colors } from "../utils";
 
@@ -12,7 +13,8 @@ interface SectionProps {
   headerTitle: string;
   headerLeftIcon?: JSX.Element;
   showHeaderDivider?: boolean;
-  scrollY?: Animated.SharedValue<number>;
+  scrollY: Animated.SharedValue<number>;
+  initialPosition?: number;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -21,23 +23,28 @@ export const Section: React.FC<SectionProps> = ({
   headerLeftIcon,
   showHeaderDivider = false,
   scrollY,
+  initialPosition,
   style,
   children,
 }) => {
-  const origin = useSharedValue(0);
+  const containerPosition = useSharedValue(0);
+  const origin = useDerivedValue(() => {
+    return initialPosition ?? containerPosition.value;
+  }, [initialPosition]);
+
   const headerSize = useSharedValue(0);
   const contentSize = useSharedValue(0);
 
   const containerAStyle = useAnimatedStyle(() => {
     const translateY = interpolate(
-      scrollY?.value ?? 0,
+      scrollY.value,
       [origin.value, origin.value + contentSize.value],
       [0, contentSize.value],
       { extrapolateLeft: "clamp", extrapolateRight: "extend" }
     );
 
     const opacity = interpolate(
-      scrollY?.value ?? 0,
+      scrollY.value,
       [
         origin.value + contentSize.value,
         origin.value + contentSize.value + Spacing.m,
@@ -59,7 +66,7 @@ export const Section: React.FC<SectionProps> = ({
 
   const sectionHeaderAStyle = useAnimatedStyle(() => {
     const borderBottomRadius = interpolate(
-      scrollY?.value ?? 0,
+      scrollY.value,
       [origin.value, origin.value + contentSize.value],
       [0, 10],
       Extrapolate.CLAMP
@@ -73,7 +80,7 @@ export const Section: React.FC<SectionProps> = ({
 
   const contentAStyle = useAnimatedStyle(() => {
     const translateY = interpolate(
-      scrollY?.value ?? 0,
+      scrollY.value,
       [origin.value, origin.value + contentSize.value],
       [0, -contentSize.value],
       Extrapolate.CLAMP
@@ -99,7 +106,8 @@ export const Section: React.FC<SectionProps> = ({
         containerAStyle,
       ]}
       onLayout={(e) => {
-        origin.value = e.nativeEvent.layout.y;
+        // origin.value = e.nativeEvent.layout.y;
+        containerPosition.value = e.nativeEvent.layout.y;
       }}
     >
       {/* Section Header */}

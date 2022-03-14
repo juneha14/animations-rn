@@ -1,15 +1,21 @@
 import React from "react";
 import { Text, View, Image } from "react-native";
+import Animated from "react-native-reanimated";
 import { Colors, Palette, Spacing } from "../../utils";
 import { Entypo, Ionicons } from "@expo/vector-icons";
 import { Section } from "../Section";
 
-export const AirQuality = () => {
+export const AirQuality = ({
+  scrollY,
+}: {
+  scrollY: Animated.SharedValue<number>;
+}) => {
   return (
     <Section
       headerTitle="Air Quality"
       headerLeftIcon={<Entypo name="air" size={15} color={Palette.White} />}
       showHeaderDivider
+      scrollY={scrollY}
       style={{ marginTop: Spacing.m }}
     >
       <View

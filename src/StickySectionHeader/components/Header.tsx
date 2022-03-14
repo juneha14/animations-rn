@@ -31,7 +31,7 @@ export const Header = ({
 
   const currentTempAStyle = useAnimatedStyle(() => {
     return {
-      opacity: interpolate(scrollY.value, [95, 120], [1, 0]),
+      opacity: interpolate(scrollY.value, [95, 122], [1, 0]),
     };
   });
 
@@ -43,7 +43,7 @@ export const Header = ({
 
   const forecastSummaryAStyle = useAnimatedStyle(() => {
     return {
-      opacity: interpolate(scrollY.value, [120, 150], [0, 1]),
+      opacity: interpolate(scrollY.value, [125, 150], [0, 1]),
     };
   });
 

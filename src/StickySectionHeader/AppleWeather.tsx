@@ -21,7 +21,6 @@ export const AppleWeather: React.FC = () => {
   const onScroll = useAnimatedScrollHandler({
     onScroll: (e) => {
       scrollY.value = e.contentOffset.y;
-      // console.log("==== Value of scrollY.value:", scrollY.value);
     },
   });
 
@@ -49,8 +48,8 @@ export const AppleWeather: React.FC = () => {
       >
         <HourlyForecast scrollY={scrollY} />
         <TenDayForecast scrollY={scrollY} />
-        <AirQuality />
-        <OtherMeteorlogyInfo />
+        <AirQuality scrollY={scrollY} />
+        <OtherMeteorlogyInfo scrollY={scrollY} />
         <UserActions />
         <Footer />
       </Animated.ScrollView>
