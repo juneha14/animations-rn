@@ -1,10 +1,15 @@
 import React from "react";
 import { View, Text } from "react-native";
+import Animated from "react-native-reanimated";
 import { Colors, Spacing, Palette } from "../../utils";
 import { Ionicons } from "@expo/vector-icons";
 import { Section } from "../Section";
 
-export const TenDayForecast = () => {
+export const TenDayForecast = ({
+  scrollY,
+}: {
+  scrollY: Animated.SharedValue<number>;
+}) => {
   return (
     <Section
       headerTitle="10-Day Forecast"
@@ -16,6 +21,7 @@ export const TenDayForecast = () => {
         />
       }
       showHeaderDivider
+      scrollY={scrollY}
       style={{ marginTop: Spacing.m }}
     >
       {[...Array(9).keys()].map((val) => {

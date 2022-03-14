@@ -1,15 +1,28 @@
 import React from "react";
 import { ScrollView, View, Text } from "react-native";
-import { Spacing, Palette } from "../../utils";
+import Animated from "react-native-reanimated";
+import { Spacing, Palette, Colors } from "../../utils";
 import { Ionicons } from "@expo/vector-icons";
 import { Section } from "../Section";
 
-export const HourlyForecast = () => {
+export const HourlyForecast = ({
+  scrollY,
+}: {
+  scrollY: Animated.SharedValue<number>;
+}) => {
   return (
     <Section
       headerTitle="Hourly Forecast"
+      headerLeftIcon={
+        <Ionicons
+          name="ios-time-outline"
+          size={15}
+          color={Colors.SurfaceForegroundPressed}
+        />
+      }
       showHeaderDivider
       style={{ marginTop: 40 }}
+      scrollY={scrollY}
     >
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         {[...Array(24).keys()].map((time) => {
