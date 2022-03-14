@@ -25,7 +25,7 @@ type StackRouteParamList = {
   // Animations:
   Accordion: undefined;
   "Apple Mail": undefined;
-  "Apple Weather Sticky Header": undefined;
+  "Apple Weather": undefined;
   "Bottom Sheet": undefined;
   "Drag to Sort List": undefined;
   "Floating Action Button": undefined;
@@ -41,7 +41,7 @@ type Screen = keyof StackRouteParamList;
 const ANIMATIONS: Screen[] = [
   "Accordion",
   "Apple Mail",
-  "Apple Weather Sticky Header",
+  "Apple Weather",
   "Bottom Sheet",
   "Drag to Sort List",
   "Floating Action Button",
@@ -66,7 +66,7 @@ export const Routes: React.FC = () => {
         <Stack.Screen name="Accordion" component={Accordion} />
         <Stack.Screen name="Apple Mail" component={AppleMail} />
         <Stack.Screen
-          name="Apple Weather Sticky Header"
+          name="Apple Weather"
           component={AppleWeather}
           options={{ headerShown: false }}
         />
