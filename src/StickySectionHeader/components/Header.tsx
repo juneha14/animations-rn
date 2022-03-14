@@ -1,7 +1,6 @@
 import React from "react";
-import { Text, View } from "react-native";
+import { LayoutChangeEvent, Text, View } from "react-native";
 import Animated, {
-  Extrapolate,
   interpolate,
   useAnimatedStyle,
 } from "react-native-reanimated";
@@ -10,8 +9,10 @@ import { Palette } from "../../utils";
 
 export const Header = ({
   scrollY,
+  onLayout,
 }: {
   scrollY: Animated.SharedValue<number>;
+  onLayout: (e: LayoutChangeEvent) => void;
 }) => {
   const { top } = useSafeAreaInsets();
 
@@ -19,12 +20,10 @@ export const Header = ({
     return {
       transform: [
         {
-          translateY: interpolate(
-            scrollY.value,
-            [-150, 0, 150],
-            [30, 0, -30],
-            Extrapolate.CLAMP
-          ),
+          translateY: interpolate(scrollY.value, [-150, 0, 150], [30, 0, -30], {
+            extrapolateLeft: "extend",
+            extrapolateRight: "clamp",
+          }),
         },
       ],
     };
@@ -63,6 +62,7 @@ export const Header = ({
         },
         headerAStyle,
       ]}
+      onLayout={onLayout}
     >
       <Text style={{ color: Palette.White, fontSize: 35 }}>
         Greater Vancouver

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View } from "react-native";
 import Animated, {
   useAnimatedScrollHandler,
@@ -15,6 +15,7 @@ import { UserActions, Footer } from "./components/UserActionFooter";
 
 export const AppleWeather: React.FC = () => {
   const { top, bottom } = useSafeAreaInsets();
+  const [headerSize, setHeaderSize] = useState(0);
   const scrollY = useSharedValue(0);
 
   const onScroll = useAnimatedScrollHandler({
@@ -26,16 +27,21 @@ export const AppleWeather: React.FC = () => {
 
   return (
     <View style={{ backgroundColor: Palette.Blue.L1 }}>
-      <Header scrollY={scrollY} />
+      <Header
+        scrollY={scrollY}
+        onLayout={(e) => {
+          setHeaderSize(e.nativeEvent.layout.height);
+        }}
+      />
       <Animated.ScrollView
         style={{
-          marginTop: top + 110,
           zIndex: 2,
         }}
         contentContainerStyle={{
+          marginTop: 110 + top,
+          paddingTop: headerSize - 110 - top,
+          paddingBottom: 110 + top + bottom,
           paddingHorizontal: Spacing.xl,
-          paddingTop: 110,
-          paddingBottom: bottom,
         }}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
