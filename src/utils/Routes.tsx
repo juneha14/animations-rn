@@ -14,6 +14,7 @@ import InstagramBookmark from "../InstagramBookmark";
 import AppleMail from "../AppleMail";
 import DragToSortList from "../DragToSortList";
 import ViewPager from "../TwitterViewPager";
+import AppleWeather from "../StickySectionHeader";
 import { InterpolateColors } from "../Fundamentals/Reanimated/InterpolateColors";
 import { InterpolateScrollView } from "../Fundamentals/Reanimated/InterpolateScrollView";
 import { Colors, Spacing } from "./theme";
@@ -24,6 +25,7 @@ type StackRouteParamList = {
   // Animations:
   Accordion: undefined;
   "Apple Mail": undefined;
+  "Apple Weather": undefined;
   "Bottom Sheet": undefined;
   "Drag to Sort List": undefined;
   "Floating Action Button": undefined;
@@ -39,6 +41,7 @@ type Screen = keyof StackRouteParamList;
 const ANIMATIONS: Screen[] = [
   "Accordion",
   "Apple Mail",
+  "Apple Weather",
   "Bottom Sheet",
   "Drag to Sort List",
   "Floating Action Button",
@@ -62,6 +65,11 @@ export const Routes: React.FC = () => {
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="Accordion" component={Accordion} />
         <Stack.Screen name="Apple Mail" component={AppleMail} />
+        <Stack.Screen
+          name="Apple Weather"
+          component={AppleWeather}
+          options={{ headerShown: false }}
+        />
         <Stack.Screen name="Bottom Sheet" component={BottomSheet} />
         <Stack.Screen name="Drag to Sort List" component={DragToSortList} />
         <Stack.Screen
