@@ -1,6 +1,11 @@
-import React, { useState } from "react";
-import { View, Text, Image, ScrollView } from "react-native";
-import Animated from "react-native-reanimated";
+import React, { useEffect, useState } from "react";
+import { View, Text, Image, ScrollView, Dimensions } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from "react-native-reanimated";
 import { Colors, Spacing } from "../utils";
 
 export const CardWallet: React.FC = () => {
@@ -109,8 +114,27 @@ const Installments = () => {
 };
 
 const InstallmentProgress = () => {
-  const paidAmount = 496.89;
-  const totalAmount = 1987.56;
+  const progressWidth = useSharedValue(0);
+
+  useEffect(() => {
+    const paidAmount = 496.89;
+    const totalAmount = 1987.56;
+    const normalized = paidAmount / totalAmount;
+    const progressBarWidth =
+      Dimensions.get("window").width - 2 * Spacing.defaultMargin;
+    const progress = normalized * progressBarWidth;
+
+    progressWidth.value = withDelay(
+      800,
+      withTiming(progress, { duration: 1000 })
+    );
+  }, [progressWidth]);
+
+  const progressIndicatorAStyle = useAnimatedStyle(() => {
+    return {
+      width: progressWidth.value,
+    };
+  });
 
   return (
     <View style={{ marginVertical: Spacing.l }}>
@@ -157,13 +181,15 @@ const InstallmentProgress = () => {
         }}
       >
         <Animated.View
-          style={{
-            position: "absolute",
-            top: 0,
-            bottom: 0,
-            width: 20,
-            backgroundColor: Colors.IconSuccess,
-          }}
+          style={[
+            {
+              position: "absolute",
+              top: 0,
+              bottom: 0,
+              backgroundColor: Colors.IconSuccess,
+            },
+            progressIndicatorAStyle,
+          ]}
         />
       </View>
 
