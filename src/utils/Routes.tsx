@@ -15,6 +15,7 @@ import AppleMail from "../AppleMail";
 import DragToSortList from "../DragToSortList";
 import ViewPager from "../TwitterViewPager";
 import AppleWeather from "../StickySectionHeader";
+import CardWallet from "../CardWallet";
 import { InterpolateColors } from "../Fundamentals/Reanimated/InterpolateColors";
 import { InterpolateScrollView } from "../Fundamentals/Reanimated/InterpolateScrollView";
 import { Colors, Spacing } from "./theme";
@@ -27,6 +28,7 @@ type StackRouteParamList = {
   "Apple Mail": undefined;
   "Apple Weather": undefined;
   "Bottom Sheet": undefined;
+  "Card Wallet": undefined;
   "Drag to Sort List": undefined;
   "Floating Action Button": undefined;
   "Instagram Bookmark": undefined;
@@ -43,6 +45,7 @@ const ANIMATIONS: Screen[] = [
   "Apple Mail",
   "Apple Weather",
   "Bottom Sheet",
+  "Card Wallet",
   "Drag to Sort List",
   "Floating Action Button",
   "Instagram Bookmark",
@@ -71,6 +74,7 @@ export const Routes: React.FC = () => {
           options={{ headerShown: false }}
         />
         <Stack.Screen name="Bottom Sheet" component={BottomSheet} />
+        <Stack.Screen name="Card Wallet" component={CardWallet} />
         <Stack.Screen name="Drag to Sort List" component={DragToSortList} />
         <Stack.Screen
           name="Floating Action Button"
