@@ -1,11 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Image, ScrollView, Dimensions } from "react-native";
+import {
+  View,
+  Text,
+  Image,
+  ScrollView,
+  Dimensions,
+  Pressable,
+} from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withTiming,
 } from "react-native-reanimated";
+import { Ionicons } from "@expo/vector-icons";
 import { Colors, Spacing } from "../utils";
 
 export const CardWallet: React.FC = () => {
@@ -52,63 +60,9 @@ const Installments = () => {
         />
       </View>
 
-      {/* Payment progress bar */}
       <InstallmentProgress />
-
-      {/* Payments */}
-      <View style={{ marginVertical: Spacing.l }}>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: Spacing.m,
-          }}
-        >
-          <Text style={{ fontWeight: "500", fontSize: 22, letterSpacing: 0.5 }}>
-            Payments
-          </Text>
-          <Text
-            style={{
-              color: Colors.TextInteractive,
-              fontSize: 18,
-              fontWeight: "500",
-            }}
-          >
-            Manage
-          </Text>
-        </View>
-
-        {PAYMENTS.map((payment, index) => {
-          return (
-            <PaymentRow
-              key={index}
-              payment={payment}
-              index={index}
-              installmentCount={PAYMENTS.length}
-            />
-          );
-        })}
-      </View>
-
-      {/* Loan details */}
-      <View style={{ marginVertical: Spacing.l }}>
-        <Text
-          style={{
-            fontSize: 22,
-            fontWeight: "500",
-            letterSpacing: 0.5,
-            marginBottom: Spacing.l,
-          }}
-        >
-          Loan details
-        </Text>
-        <LoanDetailRow title="Loan ID" value="AA1A-B22B" />
-        <LoanDetailRow title="Order total" value="$1,806.87" />
-        <LoanDetailRow title="APR" value="10.00%" />
-        <LoanDetailRow title="Total interest" value="$180.69" />
-        <LoanDetailRow title="Total of payments" value="$1,987.56" />
-      </View>
+      <Payments />
+      <LoanDetails />
     </View>
   );
 };
@@ -116,19 +70,21 @@ const Installments = () => {
 const InstallmentProgress = () => {
   const progressWidth = useSharedValue(0);
 
-  useEffect(() => {
-    const paidAmount = 496.89;
-    const totalAmount = 1987.56;
-    const normalized = paidAmount / totalAmount;
-    const progressBarWidth =
-      Dimensions.get("window").width - 2 * Spacing.defaultMargin;
-    const progress = normalized * progressBarWidth;
+  const paidAmount = 496.89;
+  const totalAmount = 1987.56;
+  const normalized = paidAmount / totalAmount;
+  const progressBarWidth =
+    Dimensions.get("window").width - 2 * Spacing.defaultMargin;
+  const paidAmountBarWidth = normalized * progressBarWidth;
+  const remainingAmountBarWidth =
+    (1 - normalized) * progressBarWidth - Spacing.l;
 
+  useEffect(() => {
     progressWidth.value = withDelay(
       800,
-      withTiming(progress, { duration: 1000 })
+      withTiming(paidAmountBarWidth, { duration: 1000 })
     );
-  }, [progressWidth]);
+  }, [paidAmountBarWidth, progressWidth]);
 
   const progressIndicatorAStyle = useAnimatedStyle(() => {
     return {
@@ -174,22 +130,40 @@ const InstallmentProgress = () => {
       {/* Progress bar */}
       <View
         style={{
+          flexDirection: "row",
+          alignItems: "center",
           height: 10,
-          borderRadius: 2,
           marginVertical: Spacing.l,
-          backgroundColor: Colors.BorderSubdued,
         }}
       >
-        <Animated.View
-          style={[
-            {
-              position: "absolute",
-              top: 0,
-              bottom: 0,
-              backgroundColor: Colors.IconSuccess,
-            },
-            progressIndicatorAStyle,
-          ]}
+        <View
+          style={{
+            width: paidAmountBarWidth,
+            height: 10,
+            borderRadius: 2,
+            backgroundColor: Colors.BorderSubdued,
+          }}
+        >
+          <Animated.View
+            style={[
+              {
+                position: "absolute",
+                top: 0,
+                bottom: 0,
+                backgroundColor: Colors.IconSuccess,
+              },
+              progressIndicatorAStyle,
+            ]}
+          />
+        </View>
+
+        <View
+          style={{
+            width: remainingAmountBarWidth,
+            height: 10,
+            marginLeft: Spacing.l,
+            backgroundColor: Colors.BorderSubdued,
+          }}
         />
       </View>
 
@@ -207,6 +181,106 @@ const InstallmentProgress = () => {
           View loan terms
         </Text>
       </View>
+    </View>
+  );
+};
+
+const getSegmentedPayments = (payments: Payment[]) => {
+  const isAllUpcomingOrOverdue = payments.every(
+    (p) => p.status === "upcoming" || p.status === "overdue"
+  );
+  if (isAllUpcomingOrOverdue) {
+    return payments;
+  }
+
+  const isAllPaid = payments.every((p) => p.status === "paid");
+  if (isAllPaid && payments.length > 5) {
+    return [payments[0], payments[payments.length - 1]];
+  }
+
+  let firstUpcomingIndex = 0;
+  for (let i = 0; i < payments.length; i++) {
+    if (payments[i].status === "upcoming") {
+      firstUpcomingIndex = i;
+      break;
+    }
+  }
+
+  if (firstUpcomingIndex >= 5) {
+    return [payments[0], ...payments.slice(firstUpcomingIndex)];
+  } else {
+    return payments;
+  }
+};
+
+const Payments = () => {
+  const [showMore, setShowMore] = useState(true);
+  const [payments, setPayments] = useState(getSegmentedPayments(PAYMENTS));
+
+  return (
+    <View style={{ marginVertical: Spacing.l }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: Spacing.m,
+        }}
+      >
+        <Text style={{ fontWeight: "500", fontSize: 22, letterSpacing: 0.5 }}>
+          Payments
+        </Text>
+        <Text
+          style={{
+            color: Colors.TextInteractive,
+            fontSize: 16,
+            fontWeight: "500",
+          }}
+        >
+          Manage
+        </Text>
+      </View>
+
+      {payments.map((payment, index) => {
+        return (
+          <React.Fragment key={index}>
+            <PaymentRow
+              payment={payment}
+              index={index}
+              installmentCount={payments.length}
+            />
+            {showMore && index === 0 ? (
+              <Pressable
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginVertical: 10,
+                  marginLeft: 2.5,
+                }}
+                onPress={() => {
+                  setShowMore(false);
+                  setPayments(PAYMENTS);
+                }}
+              >
+                <Ionicons
+                  name="ellipsis-vertical"
+                  size={15}
+                  color={Colors.Border}
+                />
+                <Text
+                  style={{
+                    color: Colors.TextInteractive,
+                    fontSize: 13,
+                    marginLeft: 16,
+                  }}
+                >
+                  Show previous payments
+                </Text>
+              </Pressable>
+            ) : null}
+          </React.Fragment>
+        );
+      })}
     </View>
   );
 };
@@ -291,12 +365,7 @@ const PaymentRow = ({
       </View>
 
       {/* Payment summary content */}
-      <View
-        style={{
-          flexShrink: 1,
-          //   backgroundColor: "pink",
-        }}
-      >
+      <View style={{ flexShrink: 1 }}>
         <Text
           style={{
             color:
@@ -337,6 +406,28 @@ const PaymentRow = ({
           }}
         >{`$${payment.amount}`}</Text>
       </View>
+    </View>
+  );
+};
+
+const LoanDetails = () => {
+  return (
+    <View style={{ marginVertical: Spacing.l }}>
+      <Text
+        style={{
+          fontSize: 22,
+          fontWeight: "500",
+          letterSpacing: 0.5,
+          marginBottom: Spacing.l,
+        }}
+      >
+        Loan details
+      </Text>
+      <LoanDetailRow title="Loan ID" value="AA1A-B22B" />
+      <LoanDetailRow title="Order total" value="$1,806.87" />
+      <LoanDetailRow title="APR" value="10.00%" />
+      <LoanDetailRow title="Total interest" value="$180.69" />
+      <LoanDetailRow title="Total of payments" value="$1,987.56" />
     </View>
   );
 };
@@ -384,6 +475,27 @@ const PAYMENTS: Payment[] = [
   {
     paidDate: "August 1, 2021",
     scheduledDate: "August 9, 2021",
+    cardTender: "VISA 1234",
+    amount: 165.63,
+    status: "paid",
+  },
+  {
+    paidDate: "August 1, 2021",
+    scheduledDate: "August 9, 2021",
+    cardTender: "VISA 1234",
+    amount: 165.63,
+    status: "paid",
+  },
+  {
+    paidDate: "August 1, 2021",
+    scheduledDate: "August 9, 2021",
+    cardTender: "VISA 1234",
+    amount: 165.63,
+    status: "paid",
+  },
+  {
+    paidDate: "August 1, 2021",
+    scheduledDate: "August 9, 2021",
     cardTender: "Adjustment",
     amount: -1.22,
     status: "paid",
@@ -394,6 +506,20 @@ const PAYMENTS: Payment[] = [
     cardTender: "VISA 1234",
     amount: 165.63,
     status: "overdue",
+  },
+  {
+    paidDate: "August 12, 2021",
+    scheduledDate: "August 9, 2021",
+    cardTender: "VISA 1234",
+    amount: 165.63,
+    status: "upcoming",
+  },
+  {
+    paidDate: "August 12, 2021",
+    scheduledDate: "August 9, 2021",
+    cardTender: "VISA 1234",
+    amount: 165.63,
+    status: "upcoming",
   },
   {
     paidDate: "August 12, 2021",
