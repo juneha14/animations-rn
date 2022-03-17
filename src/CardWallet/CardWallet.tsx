@@ -25,8 +25,73 @@ export const CardWallet: React.FC = () => {
         paddingVertical: Spacing.defaultMargin,
       }}
     >
+      <CardCarousel />
       <Installments />
     </ScrollView>
+  );
+};
+
+const CardCarousel = () => {
+  return (
+    <>
+      <Text style={{ fontSize: 30, fontWeight: "600", letterSpacing: 0.5 }}>
+        Cards
+      </Text>
+      <Animated.ScrollView
+        style={{
+          marginTop: Spacing.l,
+          marginBottom: Spacing.xl,
+          backgroundColor: "pink",
+        }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "red",
+        }}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        snapToAlignment="center"
+        decelerationRate="fast"
+        snapToInterval={CARD_WIDTH + 2 * Spacing.m}
+        contentOffset={{ x: -(CARD_WIDTH / 0.8) * 0.5 * 0.2, y: 0 }}
+      >
+        {CardImages.map((_, index) => {
+          return <Card key={index} index={index} />;
+        })}
+      </Animated.ScrollView>
+    </>
+  );
+};
+
+const CardImages = [
+  { card: require("./assets/card1.png") },
+  { card: require("./assets/card2.png") },
+  { card: require("./assets/card3.png") },
+  { card: require("./assets/card4.png") },
+  { card: require("./assets/card5.png") },
+  { card: require("./assets/card6.png") },
+];
+
+const width = Dimensions.get("window").width;
+const ratio = 228 / 362;
+const CARD_WIDTH = (width - 2 * Spacing.defaultMargin) * 0.8;
+const CARD_HEIGHT = CARD_WIDTH * ratio;
+
+const Card = ({ index }: { index: number }) => {
+  return (
+    <View>
+      <Image
+        source={CardImages[index].card}
+        style={{
+          width: CARD_WIDTH,
+          height: CARD_HEIGHT,
+          //   marginLeft: index === 0 ? (CARD_WIDTH / 0.8) * 0.2 * 0.5 : Spacing.m,
+          marginLeft: Spacing.m,
+          marginRight: Spacing.m,
+        }}
+      />
+    </View>
   );
 };
 
@@ -36,7 +101,6 @@ const Installments = () => {
       <Text style={{ fontSize: 30, fontWeight: "600", letterSpacing: 0.5 }}>
         Installments
       </Text>
-
       <OrderSummary />
       <InstallmentProgress />
       <Payments />
@@ -161,78 +225,6 @@ const InstallmentProgress = () => {
       </View>
     </View>
   );
-};
-
-interface SummaryContent {
-  type: "content";
-  data: Payment;
-}
-interface ShowAction {
-  type: "action";
-  title: string;
-  onPress: () => void;
-}
-type PaymentRowViewState = SummaryContent | ShowAction;
-
-const usePayments = (payments: Payment[]) => {
-  const [viewState, setViewState] = useState<PaymentRowViewState[]>([]);
-
-  useEffect(() => {
-    const createViewState = () => {
-      const isAllPaid = payments.every((p) => p.status === "paid");
-      const isAllOverdue = payments.every((p) => p.status === "overdue");
-      const isAllUpcoming = payments.every((p) => p.status === "upcoming");
-      if (isAllPaid || isAllOverdue || isAllUpcoming) {
-        setViewState(payments.map((p) => ({ type: "content", data: p })));
-        return;
-      }
-
-      // Find the first upcoming payment
-      let firstUpcomingIndex = 0;
-      for (let i = 0; i < payments.length; i++) {
-        const payment = payments[i];
-        if (payment.status === "upcoming") {
-          firstUpcomingIndex = i;
-          break;
-        }
-      }
-
-      // Not enough payment transactions to warrant showing the in-line 'Show more' action button
-      if (firstUpcomingIndex < 5) {
-        setViewState(payments.map((p) => ({ type: "content", data: p })));
-        return;
-      }
-
-      const previousPayments: SummaryContent[] = payments
-        .slice(1, firstUpcomingIndex)
-        .map((p) => ({ type: "content", data: p }));
-
-      const nextPayments: SummaryContent[] = payments
-        .slice(firstUpcomingIndex)
-        .map((p) => ({ type: "content", data: p }));
-
-      // Create view state with the in-line 'Show more' action button
-      let viewState: PaymentRowViewState[] = [];
-      viewState.push({ type: "content", data: payments[0] });
-      viewState.push({
-        type: "action",
-        title: "Show previous payments",
-        onPress: () => {
-          setViewState((prev) => {
-            return [prev[0], ...previousPayments, ...prev.slice(2)];
-          });
-        },
-      });
-      viewState = [...viewState, ...nextPayments];
-      setViewState(viewState);
-    };
-
-    createViewState();
-  }, [payments]);
-
-  return {
-    viewState,
-  };
 };
 
 const Payments = () => {
@@ -494,6 +486,78 @@ const LoanDetailRow = ({ title, value }: { title: string; value: string }) => {
 };
 
 /* Models and Helpers */
+
+interface SummaryContent {
+  type: "content";
+  data: Payment;
+}
+interface ShowAction {
+  type: "action";
+  title: string;
+  onPress: () => void;
+}
+type PaymentRowViewState = SummaryContent | ShowAction;
+
+const usePayments = (payments: Payment[]) => {
+  const [viewState, setViewState] = useState<PaymentRowViewState[]>([]);
+
+  useEffect(() => {
+    const createViewState = () => {
+      const isAllPaid = payments.every((p) => p.status === "paid");
+      const isAllOverdue = payments.every((p) => p.status === "overdue");
+      const isAllUpcoming = payments.every((p) => p.status === "upcoming");
+      if (isAllPaid || isAllOverdue || isAllUpcoming) {
+        setViewState(payments.map((p) => ({ type: "content", data: p })));
+        return;
+      }
+
+      // Find the first upcoming payment
+      let firstUpcomingIndex = 0;
+      for (let i = 0; i < payments.length; i++) {
+        const payment = payments[i];
+        if (payment.status === "upcoming") {
+          firstUpcomingIndex = i;
+          break;
+        }
+      }
+
+      // Not enough payment transactions to warrant showing the in-line 'Show more' action button
+      if (firstUpcomingIndex < 5) {
+        setViewState(payments.map((p) => ({ type: "content", data: p })));
+        return;
+      }
+
+      const previousPayments: SummaryContent[] = payments
+        .slice(1, firstUpcomingIndex)
+        .map((p) => ({ type: "content", data: p }));
+
+      const nextPayments: SummaryContent[] = payments
+        .slice(firstUpcomingIndex)
+        .map((p) => ({ type: "content", data: p }));
+
+      // Create view state with the in-line 'Show more' action button
+      let viewState: PaymentRowViewState[] = [];
+      viewState.push({ type: "content", data: payments[0] });
+      viewState.push({
+        type: "action",
+        title: "Show previous payments",
+        onPress: () => {
+          setViewState((prev) => {
+            return [prev[0], ...previousPayments, ...prev.slice(2)];
+          });
+        },
+      });
+      viewState = [...viewState, ...nextPayments];
+      setViewState(viewState);
+    };
+
+    createViewState();
+  }, [payments]);
+
+  return {
+    viewState,
+  };
+};
 
 type PaymentStatus = "paid" | "upcoming" | "overdue";
 interface Payment {
