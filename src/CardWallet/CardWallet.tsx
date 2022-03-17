@@ -37,29 +37,7 @@ const Installments = () => {
         Installments
       </Text>
 
-      {/* Order Summary */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginVertical: Spacing.l,
-        }}
-      >
-        <View>
-          <Text style={{ fontWeight: "500", fontSize: 16, marginBottom: 5 }}>
-            Order #12345
-          </Text>
-          <Text style={{ color: Colors.TextSubdued }}>Wazo Furniture</Text>
-        </View>
-        <Image
-          source={{
-            uri: "https://cdn.pixabay.com/photo/2016/09/16/15/56/manhattan-1674404_960_720.jpg",
-          }}
-          style={{ width: 60, height: 60, borderRadius: 10 }}
-        />
-      </View>
-
+      <OrderSummary />
       <InstallmentProgress />
       <Payments />
       <LoanDetails />
@@ -185,37 +163,80 @@ const InstallmentProgress = () => {
   );
 };
 
-const getSegmentedPayments = (payments: Payment[]) => {
-  const isAllUpcomingOrOverdue = payments.every(
-    (p) => p.status === "upcoming" || p.status === "overdue"
-  );
-  if (isAllUpcomingOrOverdue) {
-    return payments;
-  }
+interface SummaryContent {
+  type: "content";
+  data: Payment;
+}
+interface ShowAction {
+  type: "action";
+  title: string;
+  onPress: () => void;
+}
+type PaymentRowViewState = SummaryContent | ShowAction;
 
-  const isAllPaid = payments.every((p) => p.status === "paid");
-  if (isAllPaid && payments.length > 5) {
-    return [payments[0], payments[payments.length - 1]];
-  }
+const usePayments = (payments: Payment[]) => {
+  const [viewState, setViewState] = useState<PaymentRowViewState[]>([]);
 
-  let firstUpcomingIndex = 0;
-  for (let i = 0; i < payments.length; i++) {
-    if (payments[i].status === "upcoming") {
-      firstUpcomingIndex = i;
-      break;
-    }
-  }
+  useEffect(() => {
+    const createViewState = () => {
+      const isAllPaid = payments.every((p) => p.status === "paid");
+      const isAllOverdue = payments.every((p) => p.status === "overdue");
+      const isAllUpcoming = payments.every((p) => p.status === "upcoming");
+      if (isAllPaid || isAllOverdue || isAllUpcoming) {
+        setViewState(payments.map((p) => ({ type: "content", data: p })));
+        return;
+      }
 
-  if (firstUpcomingIndex >= 5) {
-    return [payments[0], ...payments.slice(firstUpcomingIndex)];
-  } else {
-    return payments;
-  }
+      // Find the first upcoming payment
+      let firstUpcomingIndex = 0;
+      for (let i = 0; i < payments.length; i++) {
+        const payment = payments[i];
+        if (payment.status === "upcoming") {
+          firstUpcomingIndex = i;
+          break;
+        }
+      }
+
+      // Not enough payment transactions to warrant showing the in-line 'Show more' action button
+      if (firstUpcomingIndex < 5) {
+        setViewState(payments.map((p) => ({ type: "content", data: p })));
+        return;
+      }
+
+      const previousPayments: SummaryContent[] = payments
+        .slice(1, firstUpcomingIndex)
+        .map((p) => ({ type: "content", data: p }));
+
+      const nextPayments: SummaryContent[] = payments
+        .slice(firstUpcomingIndex)
+        .map((p) => ({ type: "content", data: p }));
+
+      // Create view state with the in-line 'Show more' action button
+      let viewState: PaymentRowViewState[] = [];
+      viewState.push({ type: "content", data: payments[0] });
+      viewState.push({
+        type: "action",
+        title: "Show previous payments",
+        onPress: () => {
+          setViewState((prev) => {
+            return [prev[0], ...previousPayments, ...prev.slice(2)];
+          });
+        },
+      });
+      viewState = [...viewState, ...nextPayments];
+      setViewState(viewState);
+    };
+
+    createViewState();
+  }, [payments]);
+
+  return {
+    viewState,
+  };
 };
 
 const Payments = () => {
-  const [showMore, setShowMore] = useState(true);
-  const [payments, setPayments] = useState(getSegmentedPayments(PAYMENTS));
+  const { viewState } = usePayments(PAYMENTS);
 
   return (
     <View style={{ marginVertical: Spacing.l }}>
@@ -241,15 +262,21 @@ const Payments = () => {
         </Text>
       </View>
 
-      {payments.map((payment, index) => {
-        return (
-          <React.Fragment key={index}>
-            <PaymentRow
-              payment={payment}
-              index={index}
-              installmentCount={payments.length}
-            />
-            {showMore && index === 0 ? (
+      {viewState.map((state, index) => {
+        let child;
+        switch (state.type) {
+          case "content": {
+            child = (
+              <PaymentRow
+                payment={state.data}
+                index={index}
+                installmentCount={viewState.length}
+              />
+            );
+            break;
+          }
+          case "action": {
+            child = (
               <Pressable
                 style={{
                   flexDirection: "row",
@@ -257,10 +284,7 @@ const Payments = () => {
                   marginVertical: 10,
                   marginLeft: 2.5,
                 }}
-                onPress={() => {
-                  setShowMore(false);
-                  setPayments(PAYMENTS);
-                }}
+                onPress={state.onPress}
               >
                 <Ionicons
                   name="ellipsis-vertical"
@@ -274,12 +298,13 @@ const Payments = () => {
                     marginLeft: 16,
                   }}
                 >
-                  Show previous payments
+                  {state.title}
                 </Text>
               </Pressable>
-            ) : null}
-          </React.Fragment>
-        );
+            );
+          }
+        }
+        return <React.Fragment key={index}>{child}</React.Fragment>;
       })}
     </View>
   );
@@ -391,13 +416,7 @@ const PaymentRow = ({
           {subtitle}
         </Text>
       </View>
-      <View
-        style={{
-          flexGrow: 1,
-          alignItems: "flex-end",
-          //   backgroundColor: "orange",
-        }}
-      >
+      <View style={{ flexGrow: 1, alignItems: "flex-end" }}>
         <Text
           style={{
             color: amountColorForStatus[payment.status],
@@ -406,6 +425,32 @@ const PaymentRow = ({
           }}
         >{`$${payment.amount}`}</Text>
       </View>
+    </View>
+  );
+};
+
+const OrderSummary = () => {
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginVertical: Spacing.l,
+      }}
+    >
+      <View>
+        <Text style={{ fontWeight: "500", fontSize: 16, marginBottom: 5 }}>
+          Order #12345
+        </Text>
+        <Text style={{ color: Colors.TextSubdued }}>Wazo Furniture</Text>
+      </View>
+      <Image
+        source={{
+          uri: "https://cdn.pixabay.com/photo/2016/09/16/15/56/manhattan-1674404_960_720.jpg",
+        }}
+        style={{ width: 60, height: 60, borderRadius: 10 }}
+      />
     </View>
   );
 };
@@ -447,6 +492,8 @@ const LoanDetailRow = ({ title, value }: { title: string; value: string }) => {
     </View>
   );
 };
+
+/* Models and Helpers */
 
 type PaymentStatus = "paid" | "upcoming" | "overdue";
 interface Payment {
