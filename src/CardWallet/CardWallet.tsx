@@ -8,6 +8,8 @@ import {
   Pressable,
 } from "react-native";
 import Animated, {
+  Extrapolate,
+  interpolate,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
@@ -51,16 +53,21 @@ const CardCarousel = () => {
           marginTop: Spacing.l,
           marginBottom: Spacing.xl,
         }}
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={
+          {
+            // flexGrow: 1,
+            // backgroundColor: "pink"
+          }
+        }
         horizontal
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
-        snapToOffsets={SNAP_POINTS}
+        snapToOffsets={SNAP_OFFSETS}
         onScroll={onScroll}
         scrollEventThrottle={16}
       >
         {CARDS.map((_, index) => {
-          return <Card key={index} index={index} />;
+          return <Card key={index} index={index} scrollX={scrollX} />;
         })}
       </Animated.ScrollView>
     </View>
@@ -68,12 +75,12 @@ const CardCarousel = () => {
 };
 
 const CARDS = [
-  { card: require("./assets/card1.png") },
-  { card: require("./assets/card2.png") },
   { card: require("./assets/card3.png") },
-  { card: require("./assets/card4.png") },
-  { card: require("./assets/card5.png") },
-  { card: require("./assets/card6.png") },
+  { card: require("./assets/card3.png") },
+  { card: require("./assets/card3.png") },
+  { card: require("./assets/card3.png") },
+  { card: require("./assets/card3.png") },
+  { card: require("./assets/card3.png") },
 ];
 
 const WIDTH = Dimensions.get("window").width;
@@ -83,24 +90,76 @@ const RATIO = 228 / 362;
 const CARD_WIDTH = (WIDTH - PAGE_PADDING) * 0.8;
 const CARD_HEIGHT = CARD_WIDTH * RATIO;
 
-const CARD_MARGIN = Spacing.m;
+const CARD_MARGIN = 0;
 const EMPTY_OFFSET = (WIDTH - PAGE_PADDING - CARD_WIDTH - CARD_MARGIN) / 2;
 
-const SNAP_POINTS = CARDS.map((_, index) => index * (CARD_WIDTH + CARD_MARGIN));
+const SNAP_OFFSETS = CARDS.map(
+  (_, index) => index * (CARD_WIDTH + CARD_MARGIN)
+);
 
-const Card = ({ index }: { index: number }) => {
+const Card = ({
+  index,
+  scrollX,
+}: {
+  index: number;
+  scrollX: Animated.SharedValue<number>;
+}) => {
+  const aStyle = useAnimatedStyle(() => {
+    // Need to provide valid values for array boundaries (i.e. index=0 and index=length-1)
+    // If we don't, then the app will crash since it will be interpolating an undefined range/value
+    const inputRange = [
+      index === 0 ? CARD_WIDTH * (index - 1) : SNAP_OFFSETS[index - 1],
+      SNAP_OFFSETS[index],
+      index === CARDS.length - 1
+        ? CARD_WIDTH * (index + 1)
+        : SNAP_OFFSETS[index + 1],
+    ];
+
+    const translateOffset = (CARD_WIDTH - CARD_WIDTH * 0.9) / 2 - 5;
+
+    return {
+      transform: [
+        {
+          translateX: interpolate(
+            scrollX.value,
+            inputRange,
+            [-translateOffset, 0, translateOffset],
+            Extrapolate.CLAMP
+          ),
+        },
+        {
+          scale: interpolate(
+            scrollX.value,
+            inputRange,
+            [0.9, 1, 0.9],
+            Extrapolate.CLAMP
+          ),
+        },
+      ],
+      opacity: interpolate(
+        scrollX.value,
+        inputRange,
+        [0.5, 1, 0.5],
+        Extrapolate.CLAMP
+      ),
+    };
+  });
+
   return (
-    <View>
+    <Animated.View style={aStyle}>
       <Image
         source={CARDS[index].card}
         style={{
           width: CARD_WIDTH,
           height: CARD_HEIGHT,
           marginLeft: index === 0 ? EMPTY_OFFSET : 0,
-          marginRight: index === CARDS.length - 1 ? EMPTY_OFFSET : Spacing.m,
+          marginRight:
+            index === CARDS.length - 1
+              ? EMPTY_OFFSET + CARD_MARGIN
+              : CARD_MARGIN,
         }}
       />
-    </View>
+    </Animated.View>
   );
 };
 
