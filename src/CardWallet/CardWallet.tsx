@@ -8,6 +8,7 @@ import {
   Pressable,
 } from "react-native";
 import Animated, {
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -32,8 +33,16 @@ export const CardWallet: React.FC = () => {
 };
 
 const CardCarousel = () => {
+  const scrollX = useSharedValue(0);
+
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      scrollX.value = e.contentOffset.x;
+    },
+  });
+
   return (
-    <>
+    <View style={{ marginBottom: Spacing.l }}>
       <Text style={{ fontSize: 30, fontWeight: "600", letterSpacing: 0.5 }}>
         Cards
       </Text>
@@ -41,30 +50,24 @@ const CardCarousel = () => {
         style={{
           marginTop: Spacing.l,
           marginBottom: Spacing.xl,
-          backgroundColor: "pink",
         }}
-        contentContainerStyle={{
-          flexGrow: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "red",
-        }}
+        contentContainerStyle={{ flexGrow: 1 }}
         horizontal
         showsHorizontalScrollIndicator={false}
-        snapToAlignment="center"
         decelerationRate="fast"
-        snapToInterval={CARD_WIDTH + 2 * Spacing.m}
-        contentOffset={{ x: -(CARD_WIDTH / 0.8) * 0.5 * 0.2, y: 0 }}
+        snapToOffsets={SNAP_POINTS}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
       >
-        {CardImages.map((_, index) => {
+        {CARDS.map((_, index) => {
           return <Card key={index} index={index} />;
         })}
       </Animated.ScrollView>
-    </>
+    </View>
   );
 };
 
-const CardImages = [
+const CARDS = [
   { card: require("./assets/card1.png") },
   { card: require("./assets/card2.png") },
   { card: require("./assets/card3.png") },
@@ -73,22 +76,28 @@ const CardImages = [
   { card: require("./assets/card6.png") },
 ];
 
-const width = Dimensions.get("window").width;
-const ratio = 228 / 362;
-const CARD_WIDTH = (width - 2 * Spacing.defaultMargin) * 0.8;
-const CARD_HEIGHT = CARD_WIDTH * ratio;
+const WIDTH = Dimensions.get("window").width;
+const PAGE_PADDING = 2 * Spacing.defaultMargin;
+
+const RATIO = 228 / 362;
+const CARD_WIDTH = (WIDTH - PAGE_PADDING) * 0.8;
+const CARD_HEIGHT = CARD_WIDTH * RATIO;
+
+const CARD_MARGIN = Spacing.m;
+const EMPTY_OFFSET = (WIDTH - PAGE_PADDING - CARD_WIDTH - CARD_MARGIN) / 2;
+
+const SNAP_POINTS = CARDS.map((_, index) => index * (CARD_WIDTH + CARD_MARGIN));
 
 const Card = ({ index }: { index: number }) => {
   return (
     <View>
       <Image
-        source={CardImages[index].card}
+        source={CARDS[index].card}
         style={{
           width: CARD_WIDTH,
           height: CARD_HEIGHT,
-          //   marginLeft: index === 0 ? (CARD_WIDTH / 0.8) * 0.2 * 0.5 : Spacing.m,
-          marginLeft: Spacing.m,
-          marginRight: Spacing.m,
+          marginLeft: index === 0 ? EMPTY_OFFSET : 0,
+          marginRight: index === CARDS.length - 1 ? EMPTY_OFFSET : Spacing.m,
         }}
       />
     </View>
@@ -115,8 +124,7 @@ const InstallmentProgress = () => {
   const paidAmount = 496.89;
   const totalAmount = 1987.56;
   const normalized = paidAmount / totalAmount;
-  const progressBarWidth =
-    Dimensions.get("window").width - 2 * Spacing.defaultMargin;
+  const progressBarWidth = WIDTH - 2 * Spacing.defaultMargin;
   const paidAmountBarWidth = normalized * progressBarWidth;
   const remainingAmountBarWidth =
     (1 - normalized) * progressBarWidth - Spacing.l;
@@ -449,7 +457,7 @@ const OrderSummary = () => {
 
 const LoanDetails = () => {
   return (
-    <View style={{ marginVertical: Spacing.l }}>
+    <View style={{ marginVertical: Spacing.s }}>
       <Text
         style={{
           fontSize: 22,
