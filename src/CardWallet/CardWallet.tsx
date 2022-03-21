@@ -53,12 +53,6 @@ const CardCarousel = () => {
           marginTop: Spacing.l,
           marginBottom: Spacing.xl,
         }}
-        contentContainerStyle={
-          {
-            // flexGrow: 1,
-            // backgroundColor: "pink"
-          }
-        }
         horizontal
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
@@ -75,12 +69,12 @@ const CardCarousel = () => {
 };
 
 const CARDS = [
+  { card: require("./assets/card1.png") },
+  { card: require("./assets/card2.png") },
   { card: require("./assets/card3.png") },
-  { card: require("./assets/card3.png") },
-  { card: require("./assets/card3.png") },
-  { card: require("./assets/card3.png") },
-  { card: require("./assets/card3.png") },
-  { card: require("./assets/card3.png") },
+  { card: require("./assets/card4.png") },
+  { card: require("./assets/card5.png") },
+  { card: require("./assets/card6.png") },
 ];
 
 const WIDTH = Dimensions.get("window").width;
@@ -115,7 +109,9 @@ const Card = ({
         : SNAP_OFFSETS[index + 1],
     ];
 
-    const translateOffset = (CARD_WIDTH - CARD_WIDTH * 0.9) / 2 - 5;
+    const scale = 0.8;
+    const translateX = (CARD_WIDTH - CARD_WIDTH * scale) / 2 + 30;
+    const translateY = (CARD_HEIGHT - CARD_HEIGHT * scale) / 2 - 10;
 
     return {
       transform: [
@@ -123,7 +119,15 @@ const Card = ({
           translateX: interpolate(
             scrollX.value,
             inputRange,
-            [-translateOffset, 0, translateOffset],
+            [-translateX, 0, translateX],
+            Extrapolate.CLAMP
+          ),
+        },
+        {
+          translateY: interpolate(
+            scrollX.value,
+            inputRange,
+            [translateY, 0, translateY],
             Extrapolate.CLAMP
           ),
         },
@@ -131,7 +135,7 @@ const Card = ({
           scale: interpolate(
             scrollX.value,
             inputRange,
-            [0.9, 1, 0.9],
+            [scale, 1, scale],
             Extrapolate.CLAMP
           ),
         },
@@ -140,6 +144,12 @@ const Card = ({
         scrollX.value,
         inputRange,
         [0.5, 1, 0.5],
+        Extrapolate.CLAMP
+      ),
+      zIndex: interpolate(
+        scrollX.value,
+        inputRange,
+        [0, 2, 0],
         Extrapolate.CLAMP
       ),
     };
