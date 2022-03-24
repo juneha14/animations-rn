@@ -1,18 +1,26 @@
 import React, { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, View, StyleSheet } from "react-native";
 import Animated, {
   cancelAnimation,
+  Extrapolate,
+  interpolate,
   runOnJS,
   useAnimatedReaction,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { Colors, Spacing } from "../utils";
-import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import { clamp, Colors, Spacing } from "../utils";
+import {
+  MaterialCommunityIcons,
+  MaterialIcons,
+  Ionicons,
+} from "@expo/vector-icons";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 export const ProgressButtons: React.FC = () => {
   return (
@@ -26,12 +34,173 @@ export const ProgressButtons: React.FC = () => {
       }}
     >
       <DownloadButton />
+      <SwipeToPayButton />
     </View>
   );
 };
 
-const BUTTON_WIDTH = 200;
-const BUTTON_HEIGHT = 50;
+const SwipeToPayButton = () => {
+  const [pressed, setPressed] = useState(false);
+
+  const buyNowTextOpacity = useSharedValue(1);
+  const swipeToPayContainerOpacity = useSharedValue(0);
+
+  useAnimatedReaction(
+    () => pressed,
+    (p) => {
+      if (p) {
+        buyNowTextOpacity.value = withTiming(0, { duration: 100 }, () => {
+          swipeToPayContainerOpacity.value = withDelay(100, withTiming(1));
+        });
+      } else {
+        buyNowTextOpacity.value = 1;
+        swipeToPayContainerOpacity.value = 0;
+      }
+    },
+    [pressed]
+  );
+
+  const buyNowTextAStyle = useAnimatedStyle(() => {
+    return {
+      opacity: buyNowTextOpacity.value,
+    };
+  });
+
+  const swipeOffsetX = useSharedValue(0);
+  const panGesture = Gesture.Pan()
+    .averageTouches(true)
+    .onBegin((e) => {
+      //
+    })
+    .onUpdate((e) => {
+      swipeOffsetX.value = e.translationX;
+    })
+    .onEnd((e) => {
+      swipeOffsetX.value = withTiming(0);
+      //   runOnJS(setPressed)(false);
+    });
+
+  const swipeToPayContainerAStyle = useAnimatedStyle(() => {
+    return {
+      left: interpolate(
+        swipeOffsetX.value,
+        [0, BUTTON_WIDTH - 50 - 2 * Spacing.m],
+        [0, BUTTON_WIDTH - 50 - 2 * Spacing.m],
+        Extrapolate.CLAMP
+      ),
+      opacity: swipeToPayContainerOpacity.value,
+    };
+  });
+
+  const swipeArrowButtonAStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        {
+          translateX: clamp(
+            swipeOffsetX.value,
+            0,
+            BUTTON_WIDTH - 50 - 2 * Spacing.m
+          ),
+        },
+      ],
+    };
+  });
+
+  return (
+    <Pressable
+      style={{
+        alignItems: "center",
+        width: BUTTON_WIDTH,
+        height: BUTTON_HEIGHT,
+        borderRadius: BUTTON_HEIGHT / 2,
+        marginTop: Spacing.defaultMargin,
+        backgroundColor: Colors.ActionPrimary,
+        overflow: "hidden",
+      }}
+      onPress={() => {
+        if (!pressed) {
+          setPressed(true);
+        }
+      }}
+    >
+      {/* Buy now text */}
+      <Animated.Text
+        style={[
+          {
+            position: "absolute",
+            top: 20,
+            color: Colors.TextOnSurfacePrimary,
+            fontSize: 16,
+            fontWeight: "700",
+          },
+          buyNowTextAStyle,
+        ]}
+      >
+        Buy now
+      </Animated.Text>
+
+      {/* Swipe to pay container */}
+      <GestureDetector gesture={panGesture}>
+        <Animated.View
+          style={[
+            {
+              ...StyleSheet.absoluteFillObject,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              paddingHorizontal: Spacing.m,
+              backgroundColor: "pink",
+            },
+            swipeToPayContainerAStyle,
+          ]}
+        >
+          <Animated.View
+            style={[
+              {
+                justifyContent: "center",
+                alignItems: "center",
+                width: 50,
+                height: 50,
+                borderRadius: 25,
+                borderWidth: 1,
+                borderColor: Colors.IconOnPrimary,
+              },
+              //   swipeArrowButtonAStyle,
+            ]}
+          >
+            <Ionicons
+              name="ios-chevron-forward-outline"
+              size={20}
+              color={Colors.IconOnPrimary}
+            />
+          </Animated.View>
+          <Text
+            style={{
+              color: Colors.TextOnSurfacePrimary,
+              fontSize: 16,
+              opacity: 0.8,
+            }}
+          >
+            Swipe to pay
+          </Text>
+          <View
+            style={{
+              width: 50,
+              height: 50,
+              borderRadius: 25,
+              borderWidth: 1,
+              borderColor: Colors.BorderSubdued,
+              opacity: 0.5,
+            }}
+          />
+        </Animated.View>
+      </GestureDetector>
+    </Pressable>
+  );
+};
+
+const BUTTON_WIDTH = 300;
+const BUTTON_HEIGHT = 60;
 type DownloadStatus = "success" | "failed" | "downloading" | "none";
 
 const DownloadButton = () => {
