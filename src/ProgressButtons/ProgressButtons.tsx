@@ -14,7 +14,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { Colors, Spacing } from "../utils";
+import { clamp, Colors, Spacing } from "../utils";
 import {
   MaterialCommunityIcons,
   MaterialIcons,
@@ -38,66 +38,134 @@ export const ProgressButtons: React.FC = () => {
   );
 };
 
+const BUTTON_WIDTH = 300;
+const BUTTON_HEIGHT = 60;
+
+type SwipePayStatus = "buy" | "pending" | "paid";
+const AnimatedIcon = Animated.createAnimatedComponent(Ionicons);
+
 const SwipeToPayButton = () => {
-  const [pressed, setPressed] = useState(false);
+  const [status, setStatus] = useState<SwipePayStatus>("buy");
 
   const buyNowOpacity = useSharedValue(1);
-  const swipeToPayOpacity = useSharedValue(0);
+  const swipeToPayContainerOpacity = useSharedValue(0);
+  const doneCheckmarkOpacity = useSharedValue(0);
+  const doneCheckmarkOffsetX = useSharedValue(145);
   const swipeOffsetX = useSharedValue(0);
 
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
-      swipeOffsetX.value = e.translationX;
+      const offsetX = clamp(
+        e.translationX,
+        0,
+        BUTTON_WIDTH - 50 - 2 * Spacing.s
+      );
+      swipeOffsetX.value = offsetX;
     })
-    .onEnd((e) => {
-      swipeOffsetX.value = withTiming(0);
+    .onEnd(() => {
+      const endPos = swipeOffsetX.value + 50;
+      const isInPayZone =
+        endPos >= BUTTON_WIDTH - 50 - Spacing.s &&
+        endPos <= BUTTON_WIDTH - Spacing.s;
+
+      if (isInPayZone) {
+        swipeOffsetX.value = withTiming(
+          BUTTON_WIDTH - 50 - 2 * Spacing.s,
+          undefined,
+          () => {
+            runOnJS(setStatus)("paid");
+          }
+        );
+      } else {
+        swipeOffsetX.value = withTiming(0);
+      }
     });
 
+  const resetToBuy = () => {
+    setTimeout(() => {
+      setStatus("buy");
+    }, 1500);
+  };
+
   useAnimatedReaction(
-    () => pressed,
-    (p) => {
-      if (p) {
-        buyNowOpacity.value = withTiming(0, { duration: 100 }, () => {
-          swipeToPayOpacity.value = withDelay(100, withTiming(1));
-        });
-      } else {
-        buyNowOpacity.value = 1;
-        swipeToPayOpacity.value = 0;
+    () => status,
+    (s) => {
+      switch (s) {
+        case "buy": {
+          buyNowOpacity.value = 1;
+          swipeToPayContainerOpacity.value = 0;
+          doneCheckmarkOpacity.value = 0;
+          doneCheckmarkOffsetX.value = 145;
+          swipeOffsetX.value = 0;
+          break;
+        }
+        case "pending": {
+          buyNowOpacity.value = withTiming(0, { duration: 100 }, () => {
+            swipeToPayContainerOpacity.value = withDelay(100, withTiming(1));
+          });
+          break;
+        }
+        case "paid": {
+          swipeToPayContainerOpacity.value = withTiming(0);
+          doneCheckmarkOpacity.value = withDelay(
+            200,
+            withTiming(1, undefined, () => {
+              doneCheckmarkOffsetX.value = withDelay(200, withTiming(0));
+              swipeOffsetX.value = withDelay(
+                200,
+                withTiming(0, undefined, () => {
+                  runOnJS(resetToBuy)();
+                })
+              );
+            })
+          );
+          break;
+        }
       }
     },
-    [pressed]
+    [status]
   );
 
   const buyNowAStyle = useAnimatedStyle(() => {
     return {
       opacity: buyNowOpacity.value,
-      zIndex: interpolate(
-        buyNowOpacity.value,
-        [1, 0],
-        [0, -1],
-        Extrapolate.CLAMP
-      ),
     };
   });
 
-  const swipeToPayAStyle = useAnimatedStyle(() => {
+  const swipeToPayContainerAStyle = useAnimatedStyle(() => {
     return {
-      opacity: swipeToPayOpacity.value,
+      opacity: swipeToPayContainerOpacity.value,
+      zIndex: swipeToPayContainerOpacity.value * 1,
     };
   });
 
   const swipeArrowAStyle = useAnimatedStyle(() => {
     return {
-      transform: [
-        {
-          translateX: interpolate(
-            swipeOffsetX.value,
-            [0, BUTTON_WIDTH - 50 - 2 * Spacing.s],
-            [0, BUTTON_WIDTH - 50 - 2 * Spacing.s],
-            Extrapolate.CLAMP
-          ),
-        },
-      ],
+      transform: [{ translateX: swipeOffsetX.value }],
+    };
+  });
+
+  const dummyButtonContainerAStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: swipeOffsetX.value }],
+    };
+  });
+
+  const doneCheckmarkAStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: doneCheckmarkOffsetX.value }],
+      opacity: doneCheckmarkOpacity.value,
+    };
+  });
+
+  const doneTextAStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolate(
+        doneCheckmarkOffsetX.value,
+        [10, 0],
+        [0, 1],
+        Extrapolate.CLAMP
+      ),
     };
   });
 
@@ -115,11 +183,12 @@ const SwipeToPayButton = () => {
         },
       ]}
       onPress={() => {
-        if (!pressed) {
-          setPressed(true);
+        if (status === "buy") {
+          setStatus("pending");
         }
       }}
     >
+      {/* Dummy button container with action button backgroundColor */}
       <Animated.View
         style={[
           {
@@ -129,9 +198,10 @@ const SwipeToPayButton = () => {
             borderRadius: BUTTON_HEIGHT / 2,
             backgroundColor: Colors.ActionPrimary,
           },
-          swipeArrowAStyle,
+          dummyButtonContainerAStyle,
         ]}
       />
+
       {/* Swipe to pay container */}
       <Animated.View
         style={[
@@ -142,9 +212,10 @@ const SwipeToPayButton = () => {
             alignItems: "center",
             paddingHorizontal: Spacing.s,
           },
-          swipeToPayAStyle,
+          swipeToPayContainerAStyle,
         ]}
       >
+        {/* Swipe arrow */}
         <GestureDetector gesture={panGesture}>
           <Animated.View
             style={[
@@ -167,6 +238,8 @@ const SwipeToPayButton = () => {
             />
           </Animated.View>
         </GestureDetector>
+
+        {/* Text and outline-view */}
         <Text
           style={{
             color: Colors.TextOnSurfacePrimary,
@@ -189,32 +262,52 @@ const SwipeToPayButton = () => {
       </Animated.View>
 
       {/* Buy now text */}
-      <Animated.View
+      <Animated.Text
         style={[
           {
-            ...StyleSheet.absoluteFillObject,
-            justifyContent: "center",
-            alignItems: "center",
+            color: Colors.TextOnSurfacePrimary,
+            fontSize: 16,
+            fontWeight: "700",
           },
           buyNowAStyle,
         ]}
       >
-        <Text
-          style={{
-            color: Colors.TextOnSurfacePrimary,
-            fontSize: 16,
-            fontWeight: "700",
-          }}
+        Buy now
+      </Animated.Text>
+
+      {/* Done container */}
+      <View
+        style={{
+          ...StyleSheet.absoluteFillObject,
+          flexDirection: "row",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <AnimatedIcon
+          name="ios-checkmark-outline"
+          size={20}
+          color={Colors.IconOnPrimary}
+          style={doneCheckmarkAStyle}
+        />
+        <Animated.Text
+          style={[
+            {
+              color: Colors.TextOnSurfacePrimary,
+              fontSize: 16,
+              fontWeight: "700",
+              marginLeft: Spacing.m,
+            },
+            doneTextAStyle,
+          ]}
         >
-          Buy now
-        </Text>
-      </Animated.View>
+          Done
+        </Animated.Text>
+      </View>
     </Pressable>
   );
 };
 
-const BUTTON_WIDTH = 300;
-const BUTTON_HEIGHT = 60;
 type DownloadStatus = "success" | "failed" | "downloading" | "none";
 
 const DownloadButton = () => {
@@ -394,7 +487,7 @@ const DownloadButton = () => {
           }}
         >
           <Animated.View
-            style={[{ position: "absolute", top: 5 }, loadingIconAStyle]}
+            style={[{ position: "absolute", top: 10 }, loadingIconAStyle]}
           >
             <MaterialCommunityIcons
               name="arrow-down"
@@ -406,7 +499,7 @@ const DownloadButton = () => {
             name="tray"
             size={24}
             color={Colors.IconOnPrimary}
-            style={{ position: "absolute", top: 15, marginLeft: 1 }}
+            style={{ position: "absolute", top: 20, marginLeft: 1 }}
           />
         </View>
         <Text
