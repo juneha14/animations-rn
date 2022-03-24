@@ -7,20 +7,19 @@ import Animated, {
   runOnJS,
   useAnimatedReaction,
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { clamp, Colors, Spacing } from "../utils";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { Colors, Spacing } from "../utils";
 import {
   MaterialCommunityIcons,
   MaterialIcons,
   Ionicons,
 } from "@expo/vector-icons";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 export const ProgressButtons: React.FC = () => {
   return (
@@ -42,64 +41,60 @@ export const ProgressButtons: React.FC = () => {
 const SwipeToPayButton = () => {
   const [pressed, setPressed] = useState(false);
 
-  const buyNowTextOpacity = useSharedValue(1);
-  const swipeToPayContainerOpacity = useSharedValue(0);
-
-  useAnimatedReaction(
-    () => pressed,
-    (p) => {
-      if (p) {
-        buyNowTextOpacity.value = withTiming(0, { duration: 100 }, () => {
-          swipeToPayContainerOpacity.value = withDelay(100, withTiming(1));
-        });
-      } else {
-        buyNowTextOpacity.value = 1;
-        swipeToPayContainerOpacity.value = 0;
-      }
-    },
-    [pressed]
-  );
-
-  const buyNowTextAStyle = useAnimatedStyle(() => {
-    return {
-      opacity: buyNowTextOpacity.value,
-    };
-  });
-
+  const buyNowOpacity = useSharedValue(1);
+  const swipeToPayOpacity = useSharedValue(0);
   const swipeOffsetX = useSharedValue(0);
+
   const panGesture = Gesture.Pan()
-    .averageTouches(true)
-    .onBegin((e) => {
-      //
-    })
     .onUpdate((e) => {
       swipeOffsetX.value = e.translationX;
     })
     .onEnd((e) => {
       swipeOffsetX.value = withTiming(0);
-      //   runOnJS(setPressed)(false);
     });
 
-  const swipeToPayContainerAStyle = useAnimatedStyle(() => {
+  useAnimatedReaction(
+    () => pressed,
+    (p) => {
+      if (p) {
+        buyNowOpacity.value = withTiming(0, { duration: 100 }, () => {
+          swipeToPayOpacity.value = withDelay(100, withTiming(1));
+        });
+      } else {
+        buyNowOpacity.value = 1;
+        swipeToPayOpacity.value = 0;
+      }
+    },
+    [pressed]
+  );
+
+  const buyNowAStyle = useAnimatedStyle(() => {
     return {
-      left: interpolate(
-        swipeOffsetX.value,
-        [0, BUTTON_WIDTH - 50 - 2 * Spacing.m],
-        [0, BUTTON_WIDTH - 50 - 2 * Spacing.m],
+      opacity: buyNowOpacity.value,
+      zIndex: interpolate(
+        buyNowOpacity.value,
+        [1, 0],
+        [0, -1],
         Extrapolate.CLAMP
       ),
-      opacity: swipeToPayContainerOpacity.value,
     };
   });
 
-  const swipeArrowButtonAStyle = useAnimatedStyle(() => {
+  const swipeToPayAStyle = useAnimatedStyle(() => {
+    return {
+      opacity: swipeToPayOpacity.value,
+    };
+  });
+
+  const swipeArrowAStyle = useAnimatedStyle(() => {
     return {
       transform: [
         {
-          translateX: clamp(
+          translateX: interpolate(
             swipeOffsetX.value,
-            0,
-            BUTTON_WIDTH - 50 - 2 * Spacing.m
+            [0, BUTTON_WIDTH - 50 - 2 * Spacing.s],
+            [0, BUTTON_WIDTH - 50 - 2 * Spacing.s],
+            Extrapolate.CLAMP
           ),
         },
       ],
@@ -108,52 +103,49 @@ const SwipeToPayButton = () => {
 
   return (
     <Pressable
-      style={{
-        alignItems: "center",
-        width: BUTTON_WIDTH,
-        height: BUTTON_HEIGHT,
-        borderRadius: BUTTON_HEIGHT / 2,
-        marginTop: Spacing.defaultMargin,
-        backgroundColor: Colors.ActionPrimary,
-        overflow: "hidden",
-      }}
+      style={[
+        {
+          justifyContent: "center",
+          alignItems: "center",
+          width: BUTTON_WIDTH,
+          height: BUTTON_HEIGHT,
+          borderRadius: BUTTON_HEIGHT / 2,
+          marginTop: Spacing.defaultMargin,
+          overflow: "hidden",
+        },
+      ]}
       onPress={() => {
         if (!pressed) {
           setPressed(true);
         }
       }}
     >
-      {/* Buy now text */}
-      <Animated.Text
+      <Animated.View
         style={[
           {
-            position: "absolute",
-            top: 20,
-            color: Colors.TextOnSurfacePrimary,
-            fontSize: 16,
-            fontWeight: "700",
+            ...StyleSheet.absoluteFillObject,
+            justifyContent: "center",
+            paddingLeft: Spacing.s,
+            borderRadius: BUTTON_HEIGHT / 2,
+            backgroundColor: Colors.ActionPrimary,
           },
-          buyNowTextAStyle,
+          swipeArrowAStyle,
+        ]}
+      />
+      {/* Swipe to pay container */}
+      <Animated.View
+        style={[
+          {
+            ...StyleSheet.absoluteFillObject,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            paddingHorizontal: Spacing.s,
+          },
+          swipeToPayAStyle,
         ]}
       >
-        Buy now
-      </Animated.Text>
-
-      {/* Swipe to pay container */}
-      <GestureDetector gesture={panGesture}>
-        <Animated.View
-          style={[
-            {
-              ...StyleSheet.absoluteFillObject,
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              paddingHorizontal: Spacing.m,
-              backgroundColor: "pink",
-            },
-            swipeToPayContainerAStyle,
-          ]}
-        >
+        <GestureDetector gesture={panGesture}>
           <Animated.View
             style={[
               {
@@ -165,7 +157,7 @@ const SwipeToPayButton = () => {
                 borderWidth: 1,
                 borderColor: Colors.IconOnPrimary,
               },
-              //   swipeArrowButtonAStyle,
+              swipeArrowAStyle,
             ]}
           >
             <Ionicons
@@ -174,27 +166,49 @@ const SwipeToPayButton = () => {
               color={Colors.IconOnPrimary}
             />
           </Animated.View>
-          <Text
-            style={{
-              color: Colors.TextOnSurfacePrimary,
-              fontSize: 16,
-              opacity: 0.8,
-            }}
-          >
-            Swipe to pay
-          </Text>
-          <View
-            style={{
-              width: 50,
-              height: 50,
-              borderRadius: 25,
-              borderWidth: 1,
-              borderColor: Colors.BorderSubdued,
-              opacity: 0.5,
-            }}
-          />
-        </Animated.View>
-      </GestureDetector>
+        </GestureDetector>
+        <Text
+          style={{
+            color: Colors.TextOnSurfacePrimary,
+            fontSize: 16,
+            opacity: 0.8,
+          }}
+        >
+          Swipe to pay
+        </Text>
+        <View
+          style={{
+            width: 50,
+            height: 50,
+            borderRadius: 25,
+            borderWidth: 1,
+            borderColor: Colors.BorderSubdued,
+            opacity: 0.5,
+          }}
+        />
+      </Animated.View>
+
+      {/* Buy now text */}
+      <Animated.View
+        style={[
+          {
+            ...StyleSheet.absoluteFillObject,
+            justifyContent: "center",
+            alignItems: "center",
+          },
+          buyNowAStyle,
+        ]}
+      >
+        <Text
+          style={{
+            color: Colors.TextOnSurfacePrimary,
+            fontSize: 16,
+            fontWeight: "700",
+          }}
+        >
+          Buy now
+        </Text>
+      </Animated.View>
     </Pressable>
   );
 };
