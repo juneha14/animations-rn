@@ -41,6 +41,8 @@ export const ProgressButtons: React.FC = () => {
 const BUTTON_WIDTH = 300;
 const BUTTON_HEIGHT = 60;
 
+const ARROW_SIZE = 50;
+const PADDING = Spacing.s;
 type SwipePayStatus = "buy" | "pending" | "paid";
 const AnimatedIcon = Animated.createAnimatedComponent(Ionicons);
 
@@ -58,19 +60,19 @@ const SwipeToPayButton = () => {
       const offsetX = clamp(
         e.translationX,
         0,
-        BUTTON_WIDTH - 50 - 2 * Spacing.s
+        BUTTON_WIDTH - ARROW_SIZE - 2 * PADDING
       );
       swipeOffsetX.value = offsetX;
     })
     .onEnd(() => {
-      const endPos = swipeOffsetX.value + 50;
+      const endPos = swipeOffsetX.value + ARROW_SIZE;
       const isInPayZone =
-        endPos >= BUTTON_WIDTH - 50 - Spacing.s &&
-        endPos <= BUTTON_WIDTH - Spacing.s;
+        endPos >= BUTTON_WIDTH - ARROW_SIZE - 2 * PADDING &&
+        endPos <= BUTTON_WIDTH - PADDING;
 
       if (isInPayZone) {
         swipeOffsetX.value = withTiming(
-          BUTTON_WIDTH - 50 - 2 * Spacing.s,
+          BUTTON_WIDTH - ARROW_SIZE - 2 * PADDING,
           undefined,
           () => {
             runOnJS(setStatus)("paid");
@@ -139,6 +141,17 @@ const SwipeToPayButton = () => {
     };
   });
 
+  const swipeTextAStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolate(
+        swipeOffsetX.value,
+        [0, 50],
+        [0.8, 0],
+        Extrapolate.CLAMP
+      ),
+    };
+  });
+
   const swipeArrowAStyle = useAnimatedStyle(() => {
     return {
       transform: [{ translateX: swipeOffsetX.value }],
@@ -194,7 +207,6 @@ const SwipeToPayButton = () => {
           {
             ...StyleSheet.absoluteFillObject,
             justifyContent: "center",
-            paddingLeft: Spacing.s,
             borderRadius: BUTTON_HEIGHT / 2,
             backgroundColor: Colors.ActionPrimary,
           },
@@ -210,7 +222,7 @@ const SwipeToPayButton = () => {
             flexDirection: "row",
             justifyContent: "space-between",
             alignItems: "center",
-            paddingHorizontal: Spacing.s,
+            paddingHorizontal: PADDING,
           },
           swipeToPayContainerAStyle,
         ]}
@@ -222,9 +234,9 @@ const SwipeToPayButton = () => {
               {
                 justifyContent: "center",
                 alignItems: "center",
-                width: 50,
-                height: 50,
-                borderRadius: 25,
+                width: ARROW_SIZE,
+                height: ARROW_SIZE,
+                borderRadius: ARROW_SIZE / 2,
                 borderWidth: 1,
                 borderColor: Colors.IconOnPrimary,
               },
@@ -240,20 +252,19 @@ const SwipeToPayButton = () => {
         </GestureDetector>
 
         {/* Text and outline-view */}
-        <Text
-          style={{
-            color: Colors.TextOnSurfacePrimary,
-            fontSize: 16,
-            opacity: 0.8,
-          }}
+        <Animated.Text
+          style={[
+            { color: Colors.TextOnSurfacePrimary, fontSize: 16 },
+            swipeTextAStyle,
+          ]}
         >
           Swipe to pay
-        </Text>
+        </Animated.Text>
         <View
           style={{
-            width: 50,
-            height: 50,
-            borderRadius: 25,
+            width: ARROW_SIZE,
+            height: ARROW_SIZE,
+            borderRadius: ARROW_SIZE / 2,
             borderWidth: 1,
             borderColor: Colors.BorderSubdued,
             opacity: 0.5,
