@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { Download } from "./components/Download";
 import { SwipeToPay_LayoutAnimation } from "./components/SwipeToPay";
 import { SwipeToPay_NonComponetized } from "./components/SwipeToPay_Naive";
+import { NetworkFetchButton } from "./components/NetworkFetchButton";
 import { Colors, Spacing } from "../utils";
 
 export const ProgressButtons: React.FC = () => {
@@ -19,6 +20,7 @@ export const ProgressButtons: React.FC = () => {
       <Download />
       <SwipeToPay_NonComponetized />
       <SwipeToPay_LayoutAnimation />
+      <NetworkFetchButton />
     </View>
   );
 };
