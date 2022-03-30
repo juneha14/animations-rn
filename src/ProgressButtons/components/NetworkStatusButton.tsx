@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import Animated, {
   cancelAnimation,
   Easing,
+  Extrapolate,
+  interpolate,
   interpolateColor,
   useAnimatedReaction,
   useAnimatedStyle,
@@ -30,6 +32,7 @@ export const NetworkStatusButton = () => {
   const renderInitialState = useSharedValue(true);
   const renderLoadingState = useSharedValue(false);
   const renderFailureState = useSharedValue(false);
+  const renderSuccessState = useSharedValue(false);
 
   const containerWidth = useSharedValue(BUTTON_WIDTH);
   const containerWiggle = useSharedValue(0);
@@ -42,6 +45,7 @@ export const NetworkStatusButton = () => {
           renderInitialState.value = true;
           renderLoadingState.value = false;
           renderFailureState.value = false;
+          renderSuccessState.value = false;
 
           containerWidth.value = BUTTON_WIDTH;
           break;
@@ -50,6 +54,7 @@ export const NetworkStatusButton = () => {
           renderInitialState.value = false;
           renderLoadingState.value = true;
           renderFailureState.value = false;
+          renderSuccessState.value = false;
 
           containerWidth.value = BUTTON_HEIGHT;
           break;
@@ -58,12 +63,14 @@ export const NetworkStatusButton = () => {
           renderInitialState.value = false;
           renderLoadingState.value = false;
           renderFailureState.value = false;
+          renderSuccessState.value = true;
           break;
         }
         case "failure": {
           renderInitialState.value = false;
           renderLoadingState.value = false;
           renderFailureState.value = true;
+          renderSuccessState.value = false;
           break;
         }
       }
@@ -115,7 +122,56 @@ export const NetworkStatusButton = () => {
         containerWidth={containerWidth}
         containerWiggle={containerWiggle}
       />
+      <SuccessStatusContainer render={renderSuccessState} />
     </AnimatedPressable>
+  );
+};
+
+const SuccessStatusContainer = ({
+  render,
+}: {
+  render: Animated.SharedValue<boolean>;
+}) => {
+  const progress = useDerivedValue(() => {
+    return render.value ? withTiming(1, { duration: 500 }) : 0;
+  });
+
+  const aStyle = useAnimatedStyle(() => {
+    const rotation = interpolate(
+      progress.value,
+      [0, 1],
+      [-90, 0],
+      Extrapolate.CLAMP
+    );
+    return {
+      opacity: progress.value,
+      zIndex: progress.value,
+      transform: [{ rotateZ: `${rotation}deg` }],
+      backgroundColor: interpolateColor(
+        progress.value,
+        [0, 1],
+        [Colors.Transparent, Colors.IconSuccess]
+      ),
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[
+        {
+          ...StyleSheet.absoluteFillObject,
+          justifyContent: "center",
+          alignItems: "center",
+        },
+        aStyle,
+      ]}
+    >
+      <Ionicons
+        name="ios-checkmark-outline"
+        size={30}
+        color={Colors.IconOnPrimary}
+      />
+    </Animated.View>
   );
 };
 
@@ -156,10 +212,13 @@ const FailureStatusContainer = ({
             false
           )
         );
-        containerWidth.value = withDelay(800, withTiming(BUTTON_WIDTH));
+        containerWidth.value = withDelay(
+          900,
+          withTiming(BUTTON_WIDTH, { easing: Easing.linear })
+        );
 
         warningIconOpacity.value = withDelay(1000, withTiming(0));
-        tryAgainOpacity.value = withDelay(1000, withTiming(1));
+        tryAgainOpacity.value = withDelay(1100, withTiming(1));
       } else if (rendered.value) {
         render.value = false;
 
@@ -310,7 +369,7 @@ const StartContainer = ({
   render: Animated.SharedValue<boolean>;
 }) => {
   const iconRotation = useDerivedValue(() => {
-    return render.value ? 0 : withTiming(180);
+    return render.value ? 0 : withTiming(180, { duration: 500 });
   });
 
   const opacity = useDerivedValue(() => {
