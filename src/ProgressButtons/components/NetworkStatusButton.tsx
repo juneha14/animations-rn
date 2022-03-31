@@ -47,7 +47,9 @@ export const NetworkStatusButton = () => {
           renderFailureState.value = false;
           renderSuccessState.value = false;
 
-          containerWidth.value = BUTTON_WIDTH;
+          containerWidth.value = withTiming(BUTTON_WIDTH, {
+            easing: Easing.linear,
+          });
           break;
         }
         case "loading": {
@@ -56,7 +58,9 @@ export const NetworkStatusButton = () => {
           renderFailureState.value = false;
           renderSuccessState.value = false;
 
-          containerWidth.value = BUTTON_HEIGHT;
+          containerWidth.value = withTiming(BUTTON_HEIGHT, {
+            easing: Easing.linear,
+          });
           break;
         }
         case "success": {
@@ -80,7 +84,7 @@ export const NetworkStatusButton = () => {
 
   const containerAStyle = useAnimatedStyle(() => {
     return {
-      width: withTiming(containerWidth.value, { easing: Easing.linear }),
+      width: containerWidth.value,
       transform: [{ translateX: containerWiggle.value }],
     };
   });
@@ -109,8 +113,11 @@ export const NetworkStatusButton = () => {
           setStatus("loading");
           setTimeout(() => {
             setStatus("success");
+            setTimeout(() => {
+              setStatus("none");
+            }, 1000);
           }, 2000);
-        } else if (status === "success" || status === "loading") {
+        } else if (status === "success") {
           setStatus("none");
         }
       }}
@@ -220,7 +227,7 @@ const FailureStatusContainer = ({
         warningIconOpacity.value = withDelay(1000, withTiming(0));
         tryAgainOpacity.value = withDelay(1100, withTiming(1));
       } else if (rendered.value) {
-        render.value = false;
+        rendered.value = false;
 
         opacity.value = withTiming(0, { duration: 500 }, () => {
           warningIconOpacity.value = 1;
@@ -228,7 +235,8 @@ const FailureStatusContainer = ({
         });
         tryAgainOpacity.value = withTiming(0, { duration: 500 });
       }
-    }
+    },
+    [render]
   );
 
   const warningIconAStyle = useAnimatedStyle(() => {

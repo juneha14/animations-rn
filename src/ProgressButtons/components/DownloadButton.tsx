@@ -19,7 +19,7 @@ const BUTTON_HEIGHT = 60;
 
 type DownloadStatus = "success" | "failed" | "downloading" | "none";
 
-export const Download = () => {
+export const DownloadButton = () => {
   const [status, setStatus] = useState<DownloadStatus>("none");
 
   // Values to control the different state container translationY

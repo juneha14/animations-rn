@@ -23,7 +23,7 @@ const PADDING = Spacing.s;
 type SwipePayStatus = "buy" | "pending" | "paid";
 const AnimatedIcon = Animated.createAnimatedComponent(Ionicons);
 
-export const SwipeToPay_LayoutAnimation = () => {
+export const SwipeToPayButton_LayoutAnimation = () => {
   const [status, setStatus] = useState<SwipePayStatus>("buy");
   const offsetX = useSharedValue(0);
 

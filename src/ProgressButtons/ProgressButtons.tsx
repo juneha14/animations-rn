@@ -1,26 +1,28 @@
 import React from "react";
-import { View } from "react-native";
-import { Download } from "./components/Download";
-import { SwipeToPay_LayoutAnimation } from "./components/SwipeToPay";
+import { ScrollView } from "react-native";
+import { DownloadButton } from "./components/DownloadButton";
+import { SwipeToPayButton_LayoutAnimation } from "./components/SwipeToPayButton";
 import { SwipeToPay_NonComponetized } from "./components/SwipeToPay_Naive";
 import { NetworkStatusButton } from "./components/NetworkStatusButton";
 import { Colors, Spacing } from "../utils";
 
 export const ProgressButtons: React.FC = () => {
   return (
-    <View
+    <ScrollView
       style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
         padding: Spacing.defaultMargin,
         backgroundColor: Colors.SurfaceBackground,
       }}
+      contentContainerStyle={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+      }}
     >
-      <Download />
+      <DownloadButton />
       <SwipeToPay_NonComponetized />
-      <SwipeToPay_LayoutAnimation />
+      <SwipeToPayButton_LayoutAnimation />
       <NetworkStatusButton />
-    </View>
+    </ScrollView>
   );
 };
