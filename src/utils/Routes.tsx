@@ -16,6 +16,7 @@ import DragToSortList from "../DragToSortList";
 import ViewPager from "../TwitterViewPager";
 import AppleWeather from "../StickySectionHeader";
 import CardWallet from "../CardWallet";
+import ProgressButtons from "../ProgressButtons";
 import { InterpolateColors } from "../Fundamentals/Reanimated/InterpolateColors";
 import { InterpolateScrollView } from "../Fundamentals/Reanimated/InterpolateScrollView";
 import { Colors, Spacing } from "./theme";
@@ -34,6 +35,7 @@ type StackRouteParamList = {
   "Instagram Bookmark": undefined;
   "Interpolate ScrollView": undefined;
   "Interpolate Colors": undefined;
+  "Progress Buttons": undefined;
   "Show More Text": undefined;
   "Twitter Profile": undefined;
   "Twitter View Pager": undefined;
@@ -51,6 +53,7 @@ const ANIMATIONS: Screen[] = [
   "Instagram Bookmark",
   "Interpolate ScrollView",
   "Interpolate Colors",
+  "Progress Buttons",
   "Show More Text",
   "Twitter Profile",
   "Twitter View Pager",
@@ -81,6 +84,7 @@ export const Routes: React.FC = () => {
           component={FloatingActionButton}
         />
         <Stack.Screen name="Instagram Bookmark" component={InstagramBookmark} />
+        <Stack.Screen name="Progress Buttons" component={ProgressButtons} />
         <Stack.Screen name="Show More Text" component={ShowMoreText} />
         <Stack.Screen
           name="Twitter Profile"
