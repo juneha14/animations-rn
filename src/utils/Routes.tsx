@@ -17,6 +17,7 @@ import ViewPager from "../TwitterViewPager";
 import AppleWeather from "../StickySectionHeader";
 import CardWallet from "../CardWallet";
 import ProgressButtons from "../ProgressButtons";
+import Toast from "../Toast";
 import { InterpolateColors } from "../Fundamentals/Reanimated/InterpolateColors";
 import { InterpolateScrollView } from "../Fundamentals/Reanimated/InterpolateScrollView";
 import { Colors, Spacing } from "./theme";
@@ -37,6 +38,7 @@ type StackRouteParamList = {
   "Interpolate Colors": undefined;
   "Progress Buttons": undefined;
   "Show More Text": undefined;
+  Toast: undefined;
   "Twitter Profile": undefined;
   "Twitter View Pager": undefined;
 };
@@ -55,6 +57,7 @@ const ANIMATIONS: Screen[] = [
   "Interpolate Colors",
   "Progress Buttons",
   "Show More Text",
+  "Toast",
   "Twitter Profile",
   "Twitter View Pager",
 ];
@@ -86,6 +89,7 @@ export const Routes: React.FC = () => {
         <Stack.Screen name="Instagram Bookmark" component={InstagramBookmark} />
         <Stack.Screen name="Progress Buttons" component={ProgressButtons} />
         <Stack.Screen name="Show More Text" component={ShowMoreText} />
+        <Stack.Screen name="Toast" component={Toast} />
         <Stack.Screen
           name="Twitter Profile"
           component={TwitterProfileView}
@@ -138,7 +142,10 @@ const Home = () => {
   return (
     <FlatList
       style={{ backgroundColor: Colors.SurfaceBackground }}
-      contentContainerStyle={{ backgroundColor: Colors.SurfaceBackground }}
+      contentContainerStyle={{
+        paddingBottom: 50,
+        backgroundColor: Colors.SurfaceBackground,
+      }}
       keyExtractor={(item) => item}
       data={ANIMATIONS}
       renderItem={renderItem}
