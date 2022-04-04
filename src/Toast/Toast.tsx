@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import Animated, {
   Extrapolate,
   interpolate,
@@ -18,31 +18,12 @@ import { Ionicons } from "@expo/vector-icons";
 export const Toast: React.FC = () => {
   return (
     <>
-      <ToastView />
-
-      <ScrollView
-        style={{ backgroundColor: Colors.SurfaceBackground }}
-        contentContainerStyle={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Pressable style={[styles.button, styles.success]}>
-          <Text style={styles.buttonText}>Show success toast</Text>
-        </Pressable>
-        <Pressable style={[styles.button, styles.informative]}>
-          <Text style={styles.buttonText}>Show information toast</Text>
-        </Pressable>
-        <Pressable style={[styles.button, styles.error]}>
-          <Text style={styles.buttonText}>Show error toast</Text>
-        </Pressable>
-      </ScrollView>
+      <_Toast />
     </>
   );
 };
 
-const ToastView = () => {
+const _Toast = () => {
   const [status, setStatus] = useState<Status>("success");
   const [containerHeight, setContainerHeight] = useState(0);
   const timeoutId = useRef<any>(null);
@@ -214,26 +195,3 @@ const stylesForStatus = (status: Status): StatusStyle => {
     }
   }
 };
-
-const styles = StyleSheet.create({
-  button: {
-    justifyContent: "center",
-    alignItems: "center",
-    width: 250,
-    height: 60,
-    borderRadius: 10,
-    marginBottom: Spacing.defaultMargin,
-  },
-  success: {
-    backgroundColor: Colors.SurfaceSuccess,
-  },
-  informative: {
-    backgroundColor: Colors.SurfaceNeutral,
-  },
-  error: {
-    backgroundColor: Colors.SurfaceCritical,
-  },
-  buttonText: {
-    color: Colors.TextInteractive,
-  },
-});
