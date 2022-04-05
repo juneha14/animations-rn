@@ -1,12 +1,14 @@
-import React from "react";
+import React, { useRef } from "react";
 import { Pressable, ScrollView, Text, StyleSheet } from "react-native";
 import { Colors, Spacing } from "../utils";
-import { Toast } from "./Toast";
+import { Toast, ToastRef } from "./Toast";
 
 export default function ToastView() {
+  const toastRef = useRef<ToastRef>(null);
+
   return (
     <>
-      <Toast />
+      <Toast ref={toastRef} />
       <ScrollView
         style={{ backgroundColor: Colors.SurfaceBackground }}
         contentContainerStyle={{
@@ -15,13 +17,46 @@ export default function ToastView() {
           alignItems: "center",
         }}
       >
-        <Pressable style={[styles.button, styles.success]}>
+        {/* Success */}
+        <Pressable
+          style={[styles.button, styles.success]}
+          onPress={() => {
+            toastRef.current?.show({
+              type: "success",
+              message: "Tweet added to your Bookmarks",
+            });
+          }}
+        >
           <Text style={styles.buttonText}>Show success toast</Text>
         </Pressable>
-        <Pressable style={[styles.button, styles.informative]}>
+
+        {/* Informative */}
+        <Pressable
+          style={[styles.button, styles.informative]}
+          onPress={() => {
+            toastRef.current?.show({
+              type: "informative",
+              message: "Tweet was added to your Bookmarks",
+            });
+          }}
+        >
           <Text style={styles.buttonText}>Show information toast</Text>
         </Pressable>
-        <Pressable style={[styles.button, styles.error]}>
+
+        {/* Error */}
+        <Pressable
+          style={[styles.button, styles.error]}
+          onPress={() => {
+            toastRef.current?.show({
+              type: "error",
+              message: "Could not add tweet to Bookmarks",
+              actionTitle: "Try again",
+              onPress: () => {
+                console.log("========== File: index.tsx, Line: 50 ==========");
+              },
+            });
+          }}
+        >
           <Text style={styles.buttonText}>Show error toast</Text>
         </Pressable>
       </ScrollView>
