@@ -4,11 +4,13 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, {
+  Easing,
   Extrapolate,
   interpolate,
   Layout,
@@ -30,23 +32,28 @@ interface ToastProps {
   ref: Ref<ToastRef>;
 }
 
+type _ToastKeyedProps = _ToastProps & { key: number };
+let key = 0;
+
 export const Toast: React.FC<ToastProps> = React.forwardRef((_, ref) => {
-  const [props, setProps] = useState<_ToastProps[]>([]);
+  const [props, setProps] = useState<_ToastKeyedProps[]>([]);
 
   useImperativeHandle(ref, () => {
     return {
       show: (props: _ToastProps) => {
+        key = key + 1;
         setProps((prev) => {
-          return [props, ...prev];
+          const keyedProp = { ...props, key };
+          return [keyedProp, ...prev];
         });
       },
     };
   });
 
   const onDismiss = useCallback(
-    (prop: _ToastProps) => () => {
+    (prop: _ToastKeyedProps) => () => {
       setProps((prev) => {
-        return prev.filter((p) => p.message !== prop.message);
+        return prev.filter((p) => p.key !== prop.key);
       });
     },
     []
@@ -63,8 +70,11 @@ export const Toast: React.FC<ToastProps> = React.forwardRef((_, ref) => {
       }}
     >
       {props.map((prop) => {
+        // NOTE: Key must be unique (and not change) per _Toast component.
+        // If we simply use the `index` as the key, then the component will not maintain its identity across state updates.
+        // The `index` will not be the same as the original key that the component was given when there is a state update (i.e. setProps)
         return (
-          <_Toast key={prop.message} props={prop} onDismiss={onDismiss(prop)} /> // TODO: KEY has to be unique!
+          <_Toast key={prop.key} props={prop} onDismiss={onDismiss(prop)} />
         );
       })}
     </Animated.View>
@@ -82,9 +92,9 @@ const _Toast = ({
   const rendered = useRef(false);
   const timeoutId = useRef<any>(null);
 
-  const translateY = useSharedValue(0);
-
   const hiddenOffsetY = -(containerHeight + Spacing.m + 10);
+  const translateY = useSharedValue(hiddenOffsetY);
+
   const { backgroundColor, borderColor, iconName } = stylesForStatus(
     props.type
   );
@@ -104,9 +114,10 @@ const _Toast = ({
   // Initial custom FadeIn and SlideDown animation to show Toast
   // Doing it like this allows us to control the animation parameters more granularly (also allows us to set the toast timeout)
   // Simpler way would be to use the entering/exiting props of the Animated.View
-  useEffect(() => {
-    if (containerHeight > 0 && translateY.value === 0 && !rendered.current) {
+  useLayoutEffect(() => {
+    if (!rendered.current && containerHeight > 0) {
       rendered.current = true;
+
       translateY.value = withSequence(
         withTiming(hiddenOffsetY, { duration: 0 }),
         withTiming(0, { duration: 500 }, () => {
@@ -115,6 +126,10 @@ const _Toast = ({
       );
     }
   }, [translateY, hiddenOffsetY, containerHeight, setToastTimeout]);
+
+  useEffect(() => {
+    return () => clearToastTimeout();
+  }, [clearToastTimeout]);
 
   const panGesture = Gesture.Pan()
     .onStart(() => {
@@ -176,9 +191,9 @@ const _Toast = ({
         ]}
         // This `layout` prop allows us to smoothly animate the new layout position of this view when
         // it is re-rendered because new items are added/removed from the parent (i.e. setState)
-        layout={Layout.springify().damping(10)}
-        // entering={SlideInLeft}
-        // exiting={SlideOutLeft}
+        layout={Layout.duration(400).easing(Easing.linear)}
+        // entering={SlideInUp.easing(Easing.out(Easing.exp)).duration(1000)}
+        // exiting={FadeOutUp}
         onLayout={(e) => {
           if (containerHeight === 0) {
             const { height } = e.nativeEvent.layout;
