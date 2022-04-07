@@ -5,6 +5,7 @@ import {
   createNativeStackNavigator,
   NativeStackNavigationProp,
 } from "@react-navigation/native-stack";
+
 import Accordion from "../Accordion";
 import BottomSheet from "../BottomSheet";
 import ShowMoreText from "../ShowMoreText";
@@ -22,7 +23,13 @@ import { InterpolateColors } from "../Fundamentals/Reanimated/InterpolateColors"
 import { InterpolateScrollView } from "../Fundamentals/Reanimated/InterpolateScrollView";
 import { Colors, Spacing } from "./theme";
 
-type StackRouteParamList = {
+import {
+  InstagramGridScreen,
+  InstagramPostDetailsScreen,
+  InstagramPostType,
+} from "../SharedElementTransition/Instagram";
+
+export type StackRouteParamList = {
   Home: undefined;
 
   // Animations:
@@ -41,9 +48,14 @@ type StackRouteParamList = {
   Toast: undefined;
   "Twitter Profile": undefined;
   "Twitter View Pager": undefined;
+
+  // Shared element transitions:
+  "Shared Transition - Instagram": undefined;
+  "Shared Transition - Instagram Details": { post: InstagramPostType };
 };
 
-type Screen = keyof StackRouteParamList;
+export type Screen = keyof StackRouteParamList;
+
 const ANIMATIONS: Screen[] = [
   "Accordion",
   "Apple Mail",
@@ -56,6 +68,7 @@ const ANIMATIONS: Screen[] = [
   "Interpolate ScrollView",
   "Interpolate Colors",
   "Progress Buttons",
+  "Shared Transition - Instagram",
   "Show More Text",
   "Toast",
   "Twitter Profile",
@@ -88,6 +101,17 @@ export const Routes: React.FC = () => {
         />
         <Stack.Screen name="Instagram Bookmark" component={InstagramBookmark} />
         <Stack.Screen name="Progress Buttons" component={ProgressButtons} />
+
+        <Stack.Screen
+          name="Shared Transition - Instagram"
+          component={InstagramGridScreen}
+        />
+        <Stack.Screen
+          name="Shared Transition - Instagram Details"
+          component={InstagramPostDetailsScreen}
+          options={{ headerShown: false }}
+        />
+
         <Stack.Screen name="Show More Text" component={ShowMoreText} />
         <Stack.Screen name="Toast" component={Toast} />
         <Stack.Screen
