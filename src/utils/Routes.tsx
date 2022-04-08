@@ -2,9 +2,9 @@ import React, { useCallback } from "react";
 import { Text, FlatList, Pressable, View } from "react-native";
 import { NavigationContainer, useNavigation } from "@react-navigation/native";
 import {
-  createNativeStackNavigator,
-  NativeStackNavigationProp,
-} from "@react-navigation/native-stack";
+  createStackNavigator,
+  StackNavigationProp,
+} from "@react-navigation/stack";
 
 import Accordion from "../Accordion";
 import BottomSheet from "../BottomSheet";
@@ -28,6 +28,9 @@ import {
   InstagramPostDetailsScreen,
   InstagramPostType,
 } from "../SharedElementTransition/Instagram";
+import { createSharedElementStackNavigator } from "react-navigation-shared-element";
+import { enableScreens } from "react-native-screens";
+// import InstagramPostDetailsScreen from "../SharedElementTransition/Instagram/InstagramPostDetailsScreen";
 
 export type StackRouteParamList = {
   Home: undefined;
@@ -75,7 +78,8 @@ const ANIMATIONS: Screen[] = [
   "Twitter View Pager",
 ];
 
-const Stack = createNativeStackNavigator<StackRouteParamList>();
+enableScreens(false);
+const Stack = createSharedElementStackNavigator<StackRouteParamList>();
 
 export const Routes: React.FC = () => {
   return (
@@ -109,7 +113,31 @@ export const Routes: React.FC = () => {
         <Stack.Screen
           name="Shared Transition - Instagram Details"
           component={InstagramPostDetailsScreen}
-          options={{ headerShown: false }}
+          options={{
+            headerShown: false,
+            // transitionSpec: {
+            //   open: { animation: "timing", config: { duration: 500 } },
+            //   close: { animation: "timing", config: { duration: 500 } },
+            // },
+            // cardStyleInterpolator: ({ current: { progress } }) => {
+            //   return {
+            //     cardStyle: {
+            //       opacity: progress,
+            //     },
+            //   };
+            // },
+          }}
+          initialParams={{ post: undefined }}
+
+          // sharedElements={(route, otherRoute, showing) => {
+          //   const { post } = route.params;
+          //   return [
+          //     {
+          //       id: post.id,
+          //       animation: "move",
+          //     },
+          //   ];
+          // }}
         />
 
         <Stack.Screen name="Show More Text" component={ShowMoreText} />
@@ -131,8 +159,7 @@ export const Routes: React.FC = () => {
 };
 
 const Home = () => {
-  const { push } =
-    useNavigation<NativeStackNavigationProp<StackRouteParamList>>();
+  const { push } = useNavigation<StackNavigationProp<StackRouteParamList>>();
 
   const onPress = useCallback(
     (animation: Screen) => () => {

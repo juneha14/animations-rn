@@ -1,10 +1,9 @@
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { StackNavigationProp } from "@react-navigation/stack";
 import { StackRouteParamList, Screen } from "./Routes";
 
 export function useRouteNavigation() {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<StackRouteParamList>>();
+  const navigation = useNavigation<StackNavigationProp<StackRouteParamList>>();
   return navigation;
 }
 

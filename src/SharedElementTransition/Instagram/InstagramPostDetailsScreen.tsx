@@ -14,29 +14,36 @@ import {
   useRouteNavigation,
   useRouteParams,
 } from "../../utils";
+import { SharedElement } from "react-navigation-shared-element";
 
-export const InstagramPostDetailsScreen: React.FC = () => {
+export const InstagramPostDetailsScreen = () => {
   const { pop } = useRouteNavigation();
   const {
     params: { post },
   } = useRouteParams("Shared Transition - Instagram Details");
 
   return (
-    <View
-      style={{
-        backgroundColor: Colors.SurfaceBackground,
-      }}
-    >
+    <>
       <View
         style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 1 }}
       >
-        <Image
-          source={{ uri: post.download_url }}
-          style={{ width: IMG_WIDTH, height: IMG_HEIGHT }}
-          resizeMode="cover"
-        />
+        <SharedElement id={post.id}>
+          <Image
+            source={{
+              uri: post.download_url,
+              cache: "default",
+              width: IMG_WIDTH,
+              height: IMG_HEIGHT,
+            }}
+            resizeMode="cover"
+          />
+        </SharedElement>
         <Pressable
-          style={{ position: "absolute", top: 50, left: 10 }}
+          style={{
+            position: "absolute",
+            top: 50,
+            left: 10,
+          }}
           onPress={() => pop()}
         >
           <Ionicons
@@ -48,18 +55,20 @@ export const InstagramPostDetailsScreen: React.FC = () => {
       </View>
       <ScrollView
         style={{
-          // flex: 1,
           paddingTop: IMG_HEIGHT,
-          zIndex: 1,
-          // backgroundColor: Colors.SurfaceBackground,
         }}
         contentContainerStyle={{
-          // flexGrow: 1,
           backgroundColor: Colors.SurfaceBackground,
         }}
       ></ScrollView>
-    </View>
+    </>
   );
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+InstagramPostDetailsScreen.sharedElements = (route: any) => {
+  const { post } = route.params;
+  return [post.id];
 };
 
 const { width: WIDTH } = Dimensions.get("window");

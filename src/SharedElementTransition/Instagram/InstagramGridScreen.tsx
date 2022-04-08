@@ -6,6 +6,7 @@ import {
   Image,
   Pressable,
 } from "react-native";
+import { SharedElement } from "react-navigation-shared-element";
 import { Colors, useRouteNavigation } from "../../utils";
 
 export const InstagramGridScreen: React.FC = () => {
@@ -19,11 +20,11 @@ export const InstagramGridScreen: React.FC = () => {
 
       try {
         const res = await fetch("https://picsum.photos/v2/list");
-        const data = await res.json();
+        const data = (await res.json()) as InstagramPostType[];
 
         if (res.ok) {
           setLoading(false);
-          setData(data);
+          setData(data.slice(0, 10));
         }
       } catch (error) {
         console.error(`Failed to fetch data due to error: ${error.message}`);
@@ -36,20 +37,23 @@ export const InstagramGridScreen: React.FC = () => {
   const renderItem = useCallback(
     ({ item, index }: { item: InstagramPostType; index: number }) => {
       return (
-        <Pressable
-          style={{
-            marginVertical: 1,
-            marginRight: index % 3 !== 2 ? 2 : 0,
-          }}
-          onPress={() => {
-            push("Shared Transition - Instagram Details", { post: item });
-          }}
-        >
-          <Image
-            source={{ uri: item.download_url }}
-            style={{ width: SIZE, height: SIZE }}
-          />
-        </Pressable>
+        <SharedElement id={item.id}>
+          <Pressable
+            style={{
+              marginVertical: 1,
+              marginRight: 2,
+              marginLeft: index % 3 === 0 ? 2 : 0,
+            }}
+            onPress={() => {
+              push("Shared Transition - Instagram Details", { post: item });
+            }}
+          >
+            <Image
+              source={{ uri: item.download_url }}
+              style={{ width: SIZE, height: SIZE }}
+            />
+          </Pressable>
+        </SharedElement>
       );
     },
     [push]
@@ -64,21 +68,24 @@ export const InstagramGridScreen: React.FC = () => {
       ) : (
         <FlatList
           style={{ backgroundColor: Colors.SurfaceBackground }}
-          contentContainerStyle={{
-            justifyContent: "center",
-            alignItems: "center",
-          }}
+          contentContainerStyle={
+            {
+              // justifyContent: "center",
+              // alignItems: "center",
+            }
+          }
           keyExtractor={(item) => item.id}
           data={data}
           renderItem={renderItem}
           numColumns={3}
+          scrollIndicatorInsets={{ right: 1 }}
         />
       )}
     </>
   );
 };
 
-const SIZE = Dimensions.get("window").width / 3 - 2;
+const SIZE = Dimensions.get("window").width / 3 - 8 / 3;
 
 export interface InstagramPostType {
   id: string;
