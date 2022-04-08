@@ -45,7 +45,7 @@ const DATA: Section[] = [
   },
 ];
 
-const Screen: React.FC = () => {
+export default () => {
   return (
     <ScrollView style={styles.container}>
       {DATA.map((section, index) => {
@@ -59,8 +59,6 @@ const Screen: React.FC = () => {
     </ScrollView>
   );
 };
-
-export default Screen;
 
 const styles = StyleSheet.create({
   container: {
