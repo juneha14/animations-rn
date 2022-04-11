@@ -12,7 +12,7 @@ import { Colors, useRouteNavigation } from "../../utils";
 export const InstagramGridScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<InstagramPostType[]>([]);
-  const { push } = useRouteNavigation();
+  const { navigate } = useRouteNavigation();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,7 +37,7 @@ export const InstagramGridScreen: React.FC = () => {
   const renderItem = useCallback(
     ({ item, index }: { item: InstagramPostType; index: number }) => {
       return (
-        <SharedElement id={item.id}>
+        <SharedElement id={`${item.id}.photo`}>
           <Pressable
             style={{
               marginVertical: 1,
@@ -45,7 +45,7 @@ export const InstagramGridScreen: React.FC = () => {
               marginLeft: index % 3 === 0 ? 2 : 0,
             }}
             onPress={() => {
-              push("Shared Transition - Instagram Details", { post: item });
+              navigate("Shared Transition - Instagram Details", { post: item });
             }}
           >
             <Image
@@ -56,7 +56,7 @@ export const InstagramGridScreen: React.FC = () => {
         </SharedElement>
       );
     },
-    [push]
+    [navigate]
   );
 
   return (
@@ -68,12 +68,6 @@ export const InstagramGridScreen: React.FC = () => {
       ) : (
         <FlatList
           style={{ backgroundColor: Colors.SurfaceBackground }}
-          contentContainerStyle={
-            {
-              // justifyContent: "center",
-              // alignItems: "center",
-            }
-          }
           keyExtractor={(item) => item.id}
           data={data}
           renderItem={renderItem}
