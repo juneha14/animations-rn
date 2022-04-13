@@ -4,7 +4,7 @@ import { createSharedElementStackNavigator } from "react-navigation-shared-eleme
 import { AnimationRoutes } from "./AnimationRoutes";
 import { SharedElementRoutes } from "./SharedElementRoutes";
 import { Home } from "./Home";
-import { InstagramPostType } from "../../SharedElementTransition/Instagram";
+import { ListingType } from "../../SharedElementTransition/Airbnb";
 
 export type StackRouteParamList = {
   Home: undefined;
@@ -28,7 +28,7 @@ export type StackRouteParamList = {
 
   // Shared element transitions:
   Airbnb: undefined;
-  "Airbnb Details": { post: InstagramPostType };
+  "Airbnb Details": { listing: ListingType };
 };
 
 export type Screen = keyof StackRouteParamList;

@@ -9,9 +9,9 @@ import {
 import { SharedElement } from "react-navigation-shared-element";
 import { Colors, useRouteNavigation } from "../../utils";
 
-export const InstagramGridScreen: React.FC = () => {
+export const AirbnbListingsScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<InstagramPostType[]>([]);
+  const [data, setData] = useState<ListingType[]>([]);
   const { navigate } = useRouteNavigation();
 
   useEffect(() => {
@@ -20,7 +20,7 @@ export const InstagramGridScreen: React.FC = () => {
 
       try {
         const res = await fetch("https://picsum.photos/v2/list");
-        const data = (await res.json()) as InstagramPostType[];
+        const data = (await res.json()) as ListingType[];
 
         if (res.ok) {
           setLoading(false);
@@ -35,7 +35,7 @@ export const InstagramGridScreen: React.FC = () => {
   }, []);
 
   const renderItem = useCallback(
-    ({ item, index }: { item: InstagramPostType; index: number }) => {
+    ({ item, index }: { item: ListingType; index: number }) => {
       return (
         <SharedElement id={`${item.id}.photo`}>
           <Pressable
@@ -45,7 +45,7 @@ export const InstagramGridScreen: React.FC = () => {
               marginLeft: index % 3 === 0 ? 2 : 0,
             }}
             onPress={() => {
-              navigate("Airbnb Details", { post: item });
+              navigate("Airbnb Details", { listing: item });
             }}
           >
             <Image
@@ -81,7 +81,7 @@ export const InstagramGridScreen: React.FC = () => {
 
 const SIZE = Dimensions.get("window").width / 3 - 8 / 3;
 
-export interface InstagramPostType {
+export interface ListingType {
   id: string;
   author: string;
   width: number;

@@ -25,9 +25,9 @@ import {
 // navigation header bar background color animate when scrolling
 // smoother render animation of other non-shared element id components
 
-export const InstagramPostDetailsScreen = () => {
+export const AirbnbListingDetailsScreen = () => {
   const {
-    params: { post },
+    params: { listing },
   } = useRouteParams("Airbnb Details");
 
   const opacity = useSharedValue(0);
@@ -45,7 +45,7 @@ export const InstagramPostDetailsScreen = () => {
   return (
     <View style={{ backgroundColor: Colors.SurfaceBackground }}>
       <NavigationButtons />
-      <Images id={`${post.id}.photo`} uri={post.download_url} />
+      <Images id={`${listing.id}.photo`} uri={listing.download_url} />
 
       <Animated.ScrollView
         style={{
@@ -435,9 +435,9 @@ const NavigationButtons = () => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-InstagramPostDetailsScreen.sharedElements = (route: any) => {
-  const { post } = route.params;
-  return [`${post.id}.photo`];
+AirbnbListingDetailsScreen.sharedElements = (route: any) => {
+  const { listing } = route.params;
+  return [`${listing.id}.photo`];
 };
 
 const { width: WIDTH } = Dimensions.get("window");

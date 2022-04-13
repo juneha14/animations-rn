@@ -7,9 +7,9 @@ import { createSharedElementStackNavigator } from "react-navigation-shared-eleme
 import { Screen, StackRouteParamList } from "./Routes";
 
 import {
-  InstagramGridScreen,
-  InstagramPostDetailsScreen,
-} from "../../SharedElementTransition/Instagram";
+  AirbnbListingsScreen,
+  AirbnbListingDetailsScreen,
+} from "../../SharedElementTransition/Airbnb";
 
 const stackWrapper = () =>
   createSharedElementStackNavigator<StackRouteParamList>();
@@ -20,10 +20,10 @@ export const TRANSITIONS: Screen[] = ["Airbnb"];
 export const SharedElementRoutes = (Stack: Stack) => {
   return (
     <>
-      <Stack.Screen name="Airbnb" component={InstagramGridScreen} />
+      <Stack.Screen name="Airbnb" component={AirbnbListingsScreen} />
       <Stack.Screen
         name="Airbnb Details"
-        component={InstagramPostDetailsScreen}
+        component={AirbnbListingDetailsScreen}
         options={{
           headerShown: false,
           ...TransitionPresets.ModalSlideFromBottomIOS,
@@ -40,7 +40,7 @@ export const SharedElementRoutes = (Stack: Stack) => {
             };
           },
         }}
-        initialParams={{ post: undefined }}
+        initialParams={{ listing: undefined }}
 
         // sharedElements={(route, otherRoute, showing) => {
         //   const { post } = route.params;
