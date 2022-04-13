@@ -45,7 +45,7 @@ export const InstagramGridScreen: React.FC = () => {
               marginLeft: index % 3 === 0 ? 2 : 0,
             }}
             onPress={() => {
-              navigate("Shared Transition - Instagram Details", { post: item });
+              navigate("Airbnb Details", { post: item });
             }}
           >
             <Image

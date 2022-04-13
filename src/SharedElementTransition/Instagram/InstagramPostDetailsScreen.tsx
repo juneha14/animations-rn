@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Dimensions,
   Image,
@@ -7,6 +7,12 @@ import {
   Text,
   View,
 } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from "react-native-reanimated";
 import { SharedElement } from "react-navigation-shared-element";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -22,34 +28,49 @@ import {
 export const InstagramPostDetailsScreen = () => {
   const {
     params: { post },
-  } = useRouteParams("Shared Transition - Instagram Details");
+  } = useRouteParams("Airbnb Details");
+
+  const opacity = useSharedValue(0);
+
+  const aStyle = useAnimatedStyle(() => {
+    return {
+      opacity: opacity.value,
+    };
+  });
+
+  useEffect(() => {
+    opacity.value = withDelay(0, withTiming(1, { duration: 300 }));
+  }, [opacity]);
 
   return (
     <View style={{ backgroundColor: Colors.SurfaceBackground }}>
       <NavigationButtons />
       <Images id={`${post.id}.photo`} uri={post.download_url} />
 
-      <ScrollView
+      <Animated.ScrollView
         style={{
           marginTop: 80,
           paddingTop: IMG_HEIGHT - 80,
         }}
-        contentContainerStyle={{
-          marginTop: -30,
-          paddingTop: 6,
-          paddingBottom: IMG_HEIGHT - 80,
-          paddingHorizontal: Spacing.xl,
-          borderTopRightRadius: 30,
-          borderTopLeftRadius: 30,
-          backgroundColor: Colors.SurfaceBackground,
-        }}
+        contentContainerStyle={[
+          {
+            marginTop: -30,
+            paddingTop: 6,
+            paddingBottom: IMG_HEIGHT - 80,
+            paddingHorizontal: Spacing.xl,
+            borderTopRightRadius: 30,
+            borderTopLeftRadius: 30,
+            backgroundColor: Colors.SurfaceBackground,
+          },
+          aStyle,
+        ]}
       >
         <LocationAndReview />
         <Specifications />
         <FeaturedAmenities />
         <Description />
         <Offerings />
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 };

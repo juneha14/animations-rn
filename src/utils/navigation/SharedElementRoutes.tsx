@@ -1,0 +1,57 @@
+import React from "react";
+import {
+  CardStyleInterpolators,
+  TransitionPresets,
+} from "@react-navigation/stack";
+import { createSharedElementStackNavigator } from "react-navigation-shared-element";
+import { Screen, StackRouteParamList } from "./Routes";
+
+import {
+  InstagramGridScreen,
+  InstagramPostDetailsScreen,
+} from "../../SharedElementTransition/Instagram";
+
+const stackWrapper = () =>
+  createSharedElementStackNavigator<StackRouteParamList>();
+type Stack = ReturnType<typeof stackWrapper>;
+
+export const TRANSITIONS: Screen[] = ["Airbnb"];
+
+export const SharedElementRoutes = (Stack: Stack) => {
+  return (
+    <>
+      <Stack.Screen name="Airbnb" component={InstagramGridScreen} />
+      <Stack.Screen
+        name="Airbnb Details"
+        component={InstagramPostDetailsScreen}
+        options={{
+          headerShown: false,
+          ...TransitionPresets.ModalSlideFromBottomIOS,
+          transitionSpec: {
+            open: { animation: "timing", config: { duration: 3000 } },
+            close: { animation: "timing", config: { duration: 300 } },
+          },
+          //   cardStyleInterpolator: CardStyleInterpolators.forModalPresentationIOS,
+          cardStyleInterpolator: ({ current: { progress } }) => {
+            return {
+              cardStyle: {
+                opacity: progress,
+              },
+            };
+          },
+        }}
+        initialParams={{ post: undefined }}
+
+        // sharedElements={(route, otherRoute, showing) => {
+        //   const { post } = route.params;
+        //   return [
+        //     {
+        //       id: post.id,
+        //       animation: "move",
+        //     },
+        //   ];
+        // }}
+      />
+    </>
+  );
+};
