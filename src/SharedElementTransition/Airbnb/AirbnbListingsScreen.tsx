@@ -5,9 +5,11 @@ import {
   FlatList,
   Image,
   Pressable,
+  View,
+  Text,
 } from "react-native";
 import { SharedElement } from "react-navigation-shared-element";
-import { Colors, useRouteNavigation } from "../../utils";
+import { Colors, Spacing, useRouteNavigation } from "../../utils";
 
 export const AirbnbListingsScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -24,7 +26,7 @@ export const AirbnbListingsScreen: React.FC = () => {
 
         if (res.ok) {
           setLoading(false);
-          setData(data.slice(0, 10));
+          setData(data.slice(2, 10));
         }
       } catch (error) {
         console.error(`Failed to fetch data due to error: ${error.message}`);
@@ -34,26 +36,45 @@ export const AirbnbListingsScreen: React.FC = () => {
     fetchData();
   }, []);
 
-  const renderItem = useCallback(
-    ({ item, index }: { item: ListingType; index: number }) => {
+  const renderItem2 = useCallback(
+    ({ item }: { item: ListingType }) => {
       return (
-        <SharedElement id={`${item.id}.photo`}>
-          <Pressable
-            style={{
-              marginVertical: 1,
-              marginRight: 2,
-              marginLeft: index % 3 === 0 ? 2 : 0,
-            }}
-            onPress={() => {
-              navigate("Airbnb Details", { listing: item });
-            }}
-          >
+        <Pressable
+          style={{ paddingVertical: Spacing.l }}
+          onPress={() => navigate("Airbnb Details", { listing: item })}
+        >
+          <SharedElement id={`${item.id}.photo`}>
             <Image
               source={{ uri: item.download_url }}
-              style={{ width: SIZE, height: SIZE }}
+              style={{ width: IMG_WIDTH, height: IMG_HEIGHT, borderRadius: 10 }}
+              resizeMode="cover"
             />
-          </Pressable>
-        </SharedElement>
+          </SharedElement>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginVertical: Spacing.m,
+            }}
+          >
+            <Text style={{ marginRight: Spacing.s }}>⭐️ 4.75</Text>
+            <Text style={{ color: Colors.TextSubdued }}>(180)</Text>
+          </View>
+          <View>
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: "400",
+                marginBottom: Spacing.s,
+              }}
+            >
+              Entire rental unit | Whistler
+            </Text>
+            <Text style={{ fontSize: 18, fontWeight: "400" }}>
+              AG314 Queen Boho Studio
+            </Text>
+          </View>
+        </Pressable>
       );
     },
     [navigate]
@@ -68,10 +89,10 @@ export const AirbnbListingsScreen: React.FC = () => {
       ) : (
         <FlatList
           style={{ backgroundColor: Colors.SurfaceBackground }}
+          contentContainerStyle={{ paddingHorizontal: Spacing.defaultMargin }}
           keyExtractor={(item) => item.id}
           data={data}
-          renderItem={renderItem}
-          numColumns={3}
+          renderItem={renderItem2}
           scrollIndicatorInsets={{ right: 1 }}
         />
       )}
@@ -79,7 +100,8 @@ export const AirbnbListingsScreen: React.FC = () => {
   );
 };
 
-const SIZE = Dimensions.get("window").width / 3 - 8 / 3;
+const IMG_WIDTH = Dimensions.get("window").width - 2 * Spacing.defaultMargin;
+const IMG_HEIGHT = (IMG_WIDTH * 9) / 16;
 
 export interface ListingType {
   id: string;
