@@ -29,9 +29,8 @@ export const SharedElementRoutes = (Stack: Stack) => {
           ...TransitionPresets.ModalSlideFromBottomIOS,
           transitionSpec: {
             open: { animation: "timing", config: { duration: 3000 } },
-            close: { animation: "timing", config: { duration: 300 } },
+            close: { animation: "timing", config: { duration: 3000 } },
           },
-          //   cardStyleInterpolator: CardStyleInterpolators.forModalPresentationIOS,
           cardStyleInterpolator: ({ current: { progress } }) => {
             return {
               cardStyle: {

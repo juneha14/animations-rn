@@ -3,7 +3,7 @@ import {
   Dimensions,
   Image,
   Pressable,
-  ScrollView,
+  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -23,24 +23,13 @@ import {
 } from "../../utils";
 
 // navigation header bar background color animate when scrolling
-// smoother render animation of other non-shared element id components
+// scale image when dragging down
+// pan gesture handler to dismiss screen
 
 export const AirbnbListingDetailsScreen = () => {
   const {
     params: { listing },
   } = useRouteParams("Airbnb Details");
-
-  const opacity = useSharedValue(0);
-
-  const aStyle = useAnimatedStyle(() => {
-    return {
-      opacity: opacity.value,
-    };
-  });
-
-  useEffect(() => {
-    opacity.value = withDelay(0, withTiming(1, { duration: 300 }));
-  }, [opacity]);
 
   return (
     <View style={{ backgroundColor: Colors.SurfaceBackground }}>
@@ -52,24 +41,37 @@ export const AirbnbListingDetailsScreen = () => {
           marginTop: 80,
           paddingTop: IMG_HEIGHT - 80,
         }}
-        contentContainerStyle={[
-          {
-            marginTop: -30,
-            paddingTop: 6,
-            paddingBottom: IMG_HEIGHT - 80,
-            paddingHorizontal: Spacing.xl,
-            borderTopRightRadius: 30,
-            borderTopLeftRadius: 30,
-            backgroundColor: Colors.SurfaceBackground,
-          },
-          aStyle,
-        ]}
+        contentContainerStyle={{
+          marginTop: -30,
+          paddingTop: 6,
+          paddingBottom: IMG_HEIGHT - 80,
+          paddingHorizontal: Spacing.xl,
+          borderTopRightRadius: 30,
+          borderTopLeftRadius: 30,
+          backgroundColor: Colors.SurfaceBackground,
+        }}
       >
-        <LocationAndReview />
-        <Specifications />
-        <FeaturedAmenities />
-        <Description />
-        <Offerings />
+        <View style={{ zIndex: 1 }}>
+          <LocationAndReview id={`${listing.id}.content`} />
+          <Specifications />
+          <FeaturedAmenities />
+          <Description />
+          <Offerings />
+        </View>
+
+        <SharedElement
+          id={`${listing.id}.background`}
+          style={{ ...StyleSheet.absoluteFillObject, zIndex: 0 }}
+        >
+          <View
+            style={{
+              flex: 1,
+              borderTopRightRadius: 30,
+              borderTopLeftRadius: 30,
+              backgroundColor: Colors.SurfaceBackground,
+            }}
+          />
+        </SharedElement>
       </Animated.ScrollView>
     </View>
   );
@@ -84,38 +86,40 @@ const Section = ({ children }: { children: JSX.Element }) => {
   );
 };
 
-const LocationAndReview = () => {
+const LocationAndReview = ({ id }: { id: string }) => {
   return (
     <Section>
-      <View>
-        <Text
-          style={{ fontSize: 24, fontWeight: "500", marginBottom: Spacing.l }}
-        >
-          AG314 Queen Boho Studio
-        </Text>
-        <View
-          style={{
-            flexWrap: "wrap",
-            flexDirection: "row",
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ marginRight: Spacing.m }}>⭐️ 4.75</Text>
+      <SharedElement id={id}>
+        <View>
           <Text
+            style={{ fontSize: 24, fontWeight: "500", marginBottom: Spacing.l }}
+          >
+            AG314 Queen Boho Studio
+          </Text>
+          <View
             style={{
-              marginRight: Spacing.m,
-              textDecorationLine: "underline",
-              fontWeight: "500",
+              flexWrap: "wrap",
+              flexDirection: "row",
+              alignItems: "center",
             }}
           >
-            180 reviews
-          </Text>
-          <Text style={{ marginRight: Spacing.m }}>🚀 Super Host</Text>
-          <Text style={{ marginTop: Spacing.m }}>
-            Whistler, British Columbia, Canada
-          </Text>
+            <Text style={{ marginRight: Spacing.m }}>⭐️ 4.75</Text>
+            <Text
+              style={{
+                marginRight: Spacing.m,
+                textDecorationLine: "underline",
+                fontWeight: "500",
+              }}
+            >
+              180 reviews
+            </Text>
+            <Text style={{ marginRight: Spacing.m }}>🚀 Super Host</Text>
+            <Text style={{ marginTop: Spacing.m }}>
+              Whistler, British Columbia, Canada
+            </Text>
+          </View>
         </View>
-      </View>
+      </SharedElement>
     </Section>
   );
 };
@@ -411,6 +415,7 @@ const NavigationButtons = () => {
             name="ios-share-outline"
             size={20}
             color={Colors.IconNeutral}
+            style={{ marginLeft: 2 }}
           />
         </View>
         <View
@@ -437,11 +442,14 @@ const NavigationButtons = () => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 AirbnbListingDetailsScreen.sharedElements = (route: any) => {
   const { listing } = route.params;
-  return [`${listing.id}.photo`];
+  return [
+    { id: `${listing.id}.photo` },
+    { id: `${listing.id}.background`, animation: "fade", resize: "none" },
+    { id: `${listing.id}.content`, animation: "fade", resize: "none" },
+  ];
 };
 
-const { width: WIDTH } = Dimensions.get("window");
-const IMG_WIDTH = WIDTH;
+const IMG_WIDTH = Dimensions.get("window").width;
 const IMG_HEIGHT = (IMG_WIDTH * 9) / 16 + 120;
 const Docusaurus = {
   profile: require("../../../assets/docusaurus.png"),

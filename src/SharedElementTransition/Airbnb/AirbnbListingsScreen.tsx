@@ -7,6 +7,8 @@ import {
   Pressable,
   View,
   Text,
+  StyleSheet,
+  Share,
 } from "react-native";
 import { SharedElement } from "react-navigation-shared-element";
 import { Colors, Spacing, useRouteNavigation } from "../../utils";
@@ -36,7 +38,7 @@ export const AirbnbListingsScreen: React.FC = () => {
     fetchData();
   }, []);
 
-  const renderItem2 = useCallback(
+  const renderItem = useCallback(
     ({ item }: { item: ListingType }) => {
       return (
         <Pressable
@@ -50,29 +52,47 @@ export const AirbnbListingsScreen: React.FC = () => {
               resizeMode="cover"
             />
           </SharedElement>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginVertical: Spacing.m,
-            }}
-          >
-            <Text style={{ marginRight: Spacing.s }}>⭐️ 4.75</Text>
-            <Text style={{ color: Colors.TextSubdued }}>(180)</Text>
-          </View>
+
           <View>
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: "400",
-                marginBottom: Spacing.s,
-              }}
+            {/* Dummy content container background */}
+            <SharedElement
+              id={`${item.id}.background`}
+              style={{ ...StyleSheet.absoluteFillObject }}
             >
-              Entire rental unit | Whistler
-            </Text>
-            <Text style={{ fontSize: 18, fontWeight: "400" }}>
-              AG314 Queen Boho Studio
-            </Text>
+              <View
+                style={{ flex: 1, backgroundColor: Colors.SurfaceBackground }}
+              />
+            </SharedElement>
+
+            {/* Actual content container */}
+            <SharedElement id={`${item.id}.content`}>
+              <View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginVertical: Spacing.m,
+                  }}
+                >
+                  <Text style={{ marginRight: Spacing.s }}>⭐️ 4.75</Text>
+                  <Text style={{ color: Colors.TextSubdued }}>(180)</Text>
+                </View>
+                <View>
+                  <Text
+                    style={{
+                      fontSize: 18,
+                      fontWeight: "400",
+                      marginBottom: Spacing.s,
+                    }}
+                  >
+                    Entire rental unit | Whistler
+                  </Text>
+                  <Text style={{ fontSize: 18, fontWeight: "400" }}>
+                    AG314 Queen Boho Studio
+                  </Text>
+                </View>
+              </View>
+            </SharedElement>
           </View>
         </Pressable>
       );
@@ -92,7 +112,7 @@ export const AirbnbListingsScreen: React.FC = () => {
           contentContainerStyle={{ paddingHorizontal: Spacing.defaultMargin }}
           keyExtractor={(item) => item.id}
           data={data}
-          renderItem={renderItem2}
+          renderItem={renderItem}
           scrollIndicatorInsets={{ right: 1 }}
         />
       )}
