@@ -8,8 +8,8 @@ import {
   View,
   Text,
   StyleSheet,
-  Share,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { SharedElement } from "react-navigation-shared-element";
 import { Colors, Spacing, useRouteNavigation } from "../../utils";
 
@@ -107,14 +107,16 @@ export const AirbnbListingsScreen: React.FC = () => {
           style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
         />
       ) : (
-        <FlatList
-          style={{ backgroundColor: Colors.SurfaceBackground }}
-          contentContainerStyle={{ paddingHorizontal: Spacing.defaultMargin }}
-          keyExtractor={(item) => item.id}
-          data={data}
-          renderItem={renderItem}
-          scrollIndicatorInsets={{ right: 1 }}
-        />
+        <SafeAreaView style={{ backgroundColor: Colors.SurfaceBackground }}>
+          <FlatList
+            style={{ backgroundColor: Colors.SurfaceBackground }}
+            contentContainerStyle={{ paddingHorizontal: Spacing.defaultMargin }}
+            keyExtractor={(item) => item.id}
+            data={data}
+            renderItem={renderItem}
+            scrollIndicatorInsets={{ right: 1 }}
+          />
+        </SafeAreaView>
       )}
     </>
   );

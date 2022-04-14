@@ -8,7 +8,11 @@ import {
   View,
 } from "react-native";
 import Animated, {
+  Extrapolate,
+  interpolate,
+  runOnJS,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withTiming,
@@ -17,63 +21,114 @@ import { SharedElement } from "react-navigation-shared-element";
 import { Ionicons } from "@expo/vector-icons";
 import {
   Colors,
+  snapPoints,
   Spacing,
   useRouteNavigation,
   useRouteParams,
 } from "../../utils";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 // navigation header bar background color animate when scrolling
 // scale image when dragging down
-// pan gesture handler to dismiss screen
+// hide listing on listings screen when panning to dismiss
+// opacity of navigation header buttons does not fade with the rest of the dismiss shared transition
 
 export const AirbnbListingDetailsScreen = () => {
+  const { pop } = useRouteNavigation();
   const {
     params: { listing },
   } = useRouteParams("Airbnb Details");
 
+  const offsetX = useSharedValue(0);
+  const offsetY = useSharedValue(0);
+  const distance = useDerivedValue(() => {
+    return Math.sqrt(offsetX.value ** 2 + offsetY.value ** 2);
+  });
+
+  const panGesture = Gesture.Pan()
+    .onUpdate((e) => {
+      offsetX.value = e.translationX;
+      offsetY.value = e.translationY;
+    })
+    .onEnd((e) => {
+      const snapX = snapPoints(offsetX.value, e.velocityX, [0, WIDTH / 2]);
+      const snapY = snapPoints(offsetY.value, e.velocityY, [0, HEIGHT / 2]);
+
+      if (snapX === WIDTH / 2 || snapY === HEIGHT / 2) {
+        runOnJS(pop)();
+      } else {
+        offsetX.value = withTiming(0);
+        offsetY.value = withTiming(0);
+      }
+    });
+
+  const aStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { translateX: offsetX.value },
+        { translateY: offsetY.value },
+        {
+          scale: interpolate(
+            distance.value,
+            [0, Math.sqrt(WIDTH ** 2 + HEIGHT ** 2)],
+            [1, 0.6],
+            Extrapolate.CLAMP
+          ),
+        },
+      ],
+    };
+  });
+
   return (
-    <View style={{ backgroundColor: Colors.SurfaceBackground }}>
-      <NavigationButtons />
-      <Images id={`${listing.id}.photo`} uri={listing.download_url} />
-
-      <Animated.ScrollView
-        style={{
-          marginTop: 80,
-          paddingTop: IMG_HEIGHT - 80,
-        }}
-        contentContainerStyle={{
-          marginTop: -30,
-          paddingTop: 6,
-          paddingBottom: IMG_HEIGHT - 80,
-          paddingHorizontal: Spacing.xl,
-          borderTopRightRadius: 30,
-          borderTopLeftRadius: 30,
-          backgroundColor: Colors.SurfaceBackground,
-        }}
+    <GestureDetector gesture={panGesture}>
+      <Animated.View
+        style={[
+          {
+            overflow: "hidden",
+            borderRadius: 20,
+          },
+          aStyle,
+        ]}
       >
-        <View style={{ zIndex: 1 }}>
-          <LocationAndReview id={`${listing.id}.content`} />
-          <Specifications />
-          <FeaturedAmenities />
-          <Description />
-          <Offerings />
-        </View>
+        <NavigationButtons />
+        <Images id={`${listing.id}.photo`} uri={listing.download_url} />
 
-        <SharedElement
-          id={`${listing.id}.background`}
-          style={{ ...StyleSheet.absoluteFillObject, zIndex: 0 }}
+        <Animated.ScrollView
+          style={{
+            marginTop: 80,
+            paddingTop: IMG_HEIGHT - 80,
+          }}
+          contentContainerStyle={{
+            marginTop: -30,
+            paddingTop: 6,
+            paddingBottom: IMG_HEIGHT - 80,
+            paddingHorizontal: Spacing.xl,
+          }}
         >
-          <View
-            style={{
-              flex: 1,
-              borderTopRightRadius: 30,
-              borderTopLeftRadius: 30,
-              backgroundColor: Colors.SurfaceBackground,
-            }}
-          />
-        </SharedElement>
-      </Animated.ScrollView>
-    </View>
+          <View style={{ zIndex: 1 }}>
+            <LocationAndReview id={`${listing.id}.content`} />
+            <Specifications />
+            <FeaturedAmenities />
+            <Description />
+            <Offerings />
+          </View>
+
+          <SharedElement
+            id={`${listing.id}.background`}
+            style={{ ...StyleSheet.absoluteFillObject, zIndex: 0 }}
+          >
+            <View
+              style={{
+                flex: 1,
+                borderTopRightRadius: 30,
+                borderTopLeftRadius: 30,
+                backgroundColor: Colors.SurfaceBackground,
+              }}
+            />
+          </SharedElement>
+        </Animated.ScrollView>
+      </Animated.View>
+    </GestureDetector>
   );
 };
 
@@ -145,6 +200,8 @@ const Specifications = () => {
               width: 50,
               height: 50,
               borderRadius: 25,
+              borderWidth: 1,
+              borderColor: Colors.Border,
             }}
           />
         </View>
@@ -368,19 +425,34 @@ const Images = ({ id, uri }: { uri: string; id: string }) => {
 const NavigationButtons = () => {
   const { pop } = useRouteNavigation();
 
+  const opacity = useSharedValue(0);
+
+  useEffect(() => {
+    opacity.value = withDelay(300, withTiming(1, { duration: 500 }));
+  }, [opacity]);
+
+  const aStyle = useAnimatedStyle(() => {
+    return {
+      opacity: opacity.value,
+    };
+  });
+
   return (
-    <View
-      style={{
-        position: "absolute",
-        top: 50,
-        left: 0,
-        right: 0,
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        paddingHorizontal: Spacing.defaultMargin,
-        zIndex: 1,
-      }}
+    <Animated.View
+      style={[
+        {
+          position: "absolute",
+          top: 50,
+          left: 0,
+          right: 0,
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          paddingHorizontal: Spacing.defaultMargin,
+          zIndex: 1,
+        },
+        aStyle,
+      ]}
     >
       <Pressable
         style={{
@@ -435,21 +507,22 @@ const NavigationButtons = () => {
           />
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-AirbnbListingDetailsScreen.sharedElements = (route: any) => {
-  const { listing } = route.params;
-  return [
-    { id: `${listing.id}.photo` },
-    { id: `${listing.id}.background`, animation: "fade", resize: "none" },
-    { id: `${listing.id}.content`, animation: "fade", resize: "none" },
-  ];
-};
+// AirbnbListingDetailsScreen.sharedElements = (route: any) => {
+//   const { listing } = route.params;
+//   return [
+//     { id: `${listing.id}.photo` },
+//     { id: `${listing.id}.background`, animation: "fade", resize: "none" },
+//     { id: `${listing.id}.content`, animation: "fade", resize: "none" }, // Order matters! If I put this above the `background` row, then this `content` does not animate
+//   ];
+// };
 
-const IMG_WIDTH = Dimensions.get("window").width;
+const { width: WIDTH, height: HEIGHT } = Dimensions.get("window");
+const IMG_WIDTH = WIDTH;
 const IMG_HEIGHT = (IMG_WIDTH * 9) / 16 + 120;
 const Docusaurus = {
   profile: require("../../../assets/docusaurus.png"),
