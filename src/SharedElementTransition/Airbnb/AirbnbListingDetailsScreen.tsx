@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import {
   Dimensions,
   Image,
@@ -14,7 +14,6 @@ import Animated, {
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
-  withDelay,
   withTiming,
 } from "react-native-reanimated";
 import { SharedElement } from "react-navigation-shared-element";
@@ -31,7 +30,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 // navigation header bar background color animate when scrolling
 // scale image when dragging down
 // hide listing on listings screen when panning to dismiss
-// opacity of navigation header buttons does not fade with the rest of the dismiss shared transition
+// header image flicker
 
 export const AirbnbListingDetailsScreen = () => {
   const { pop } = useRouteNavigation();
@@ -90,9 +89,32 @@ export const AirbnbListingDetailsScreen = () => {
           aStyle,
         ]}
       >
-        <NavigationButtons />
-        <Images id={`${listing.id}.photo`} uri={listing.download_url} />
+        {/* Header */}
+        <SharedElement
+          id={`${listing.id}.icon`}
+          style={{
+            position: "absolute",
+            top: 50,
+            left: 0,
+            right: 0,
+            zIndex: 1,
+          }}
+        >
+          <NavigationButtons />
+        </SharedElement>
 
+        <SharedElement
+          id={`${listing.id}.photo`}
+          style={{ position: "absolute", top: 0, left: 0, right: 0 }}
+        >
+          <Image
+            source={{ uri: listing.download_url }}
+            resizeMode="cover"
+            style={{ borderRadius: 10, width: IMG_WIDTH, height: IMG_HEIGHT }}
+          />
+        </SharedElement>
+
+        {/* Content */}
         <Animated.ScrollView
           style={{
             marginTop: 80,
@@ -398,61 +420,17 @@ const Offerings = () => {
   );
 };
 
-const Images = ({ id, uri }: { uri: string; id: string }) => {
-  return (
-    <SharedElement
-      id={id}
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-      }}
-    >
-      <Image
-        source={{
-          uri: uri,
-          cache: "default",
-          width: IMG_WIDTH,
-          height: IMG_HEIGHT,
-        }}
-        resizeMode="cover"
-      />
-    </SharedElement>
-  );
-};
-
 const NavigationButtons = () => {
   const { pop } = useRouteNavigation();
 
-  const opacity = useSharedValue(0);
-
-  useEffect(() => {
-    opacity.value = withDelay(300, withTiming(1, { duration: 500 }));
-  }, [opacity]);
-
-  const aStyle = useAnimatedStyle(() => {
-    return {
-      opacity: opacity.value,
-    };
-  });
-
   return (
-    <Animated.View
-      style={[
-        {
-          position: "absolute",
-          top: 50,
-          left: 0,
-          right: 0,
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          paddingHorizontal: Spacing.defaultMargin,
-          zIndex: 1,
-        },
-        aStyle,
-      ]}
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingHorizontal: Spacing.defaultMargin,
+      }}
     >
       <Pressable
         style={{
@@ -507,7 +485,7 @@ const NavigationButtons = () => {
           />
         </View>
       </View>
-    </Animated.View>
+    </View>
   );
 };
 
