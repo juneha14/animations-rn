@@ -11,11 +11,13 @@ import Animated, {
   Extrapolate,
   interpolate,
   runOnJS,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { SharedElement } from "react-navigation-shared-element";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -25,10 +27,8 @@ import {
   useRouteNavigation,
   useRouteParams,
 } from "../../utils";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 // navigation header bar background color animate when scrolling
-// scale image when dragging down
 // header image flicker
 
 export const AirbnbListingDetailsScreen = () => {
@@ -36,6 +36,13 @@ export const AirbnbListingDetailsScreen = () => {
   const {
     params: { listing },
   } = useRouteParams("Airbnb Details");
+
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      scrollY.value = e.contentOffset.y;
+    },
+  });
 
   const offsetX = useSharedValue(0);
   const offsetY = useSharedValue(0);
@@ -102,16 +109,11 @@ export const AirbnbListingDetailsScreen = () => {
           <NavigationButtons />
         </SharedElement>
 
-        <SharedElement
-          id={`${listing.id}.photo`}
-          style={{ position: "absolute", top: 0, left: 0, right: 0 }}
-        >
-          <Image
-            source={{ uri: listing.download_url }}
-            resizeMode="cover"
-            style={{ borderRadius: 10, width: IMG_WIDTH, height: IMG_HEIGHT }}
-          />
-        </SharedElement>
+        <HeaderImage
+          sharedElementId={`${listing.id}.photo`}
+          uri={listing.download_url}
+          scrollY={scrollY}
+        />
 
         {/* Content */}
         <Animated.ScrollView
@@ -125,6 +127,8 @@ export const AirbnbListingDetailsScreen = () => {
             paddingBottom: IMG_HEIGHT - 80,
             paddingHorizontal: Spacing.xl,
           }}
+          scrollEventThrottle={16}
+          onScroll={onScroll}
         >
           <View style={{ zIndex: 1 }}>
             <LocationAndReview id={`${listing.id}.content`} />
@@ -150,6 +154,59 @@ export const AirbnbListingDetailsScreen = () => {
         </Animated.ScrollView>
       </Animated.View>
     </GestureDetector>
+  );
+};
+
+const HeaderImage = ({
+  uri,
+  sharedElementId,
+  scrollY,
+}: {
+  uri: string;
+  sharedElementId: string;
+  scrollY: Animated.SharedValue<number>;
+}) => {
+  const aStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        {
+          translateY: interpolate(
+            scrollY.value,
+            [0, IMG_HEIGHT - 80],
+            [0, -100],
+            Extrapolate.CLAMP
+          ),
+        },
+        {
+          scale: interpolate(scrollY.value, [-30, 0], [1.5, 1], {
+            extrapolateLeft: "extend",
+            extrapolateRight: "clamp",
+          }),
+        },
+      ],
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[
+        {
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+        },
+        aStyle,
+      ]}
+    >
+      <SharedElement id={sharedElementId}>
+        <Image
+          source={{ uri }}
+          resizeMode="cover"
+          style={{ width: IMG_WIDTH, height: IMG_HEIGHT, borderRadius: 10 }}
+        />
+      </SharedElement>
+    </Animated.View>
   );
 };
 
