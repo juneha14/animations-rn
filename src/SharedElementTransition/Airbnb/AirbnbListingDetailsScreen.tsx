@@ -29,7 +29,6 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 // navigation header bar background color animate when scrolling
 // scale image when dragging down
-// hide listing on listings screen when panning to dismiss
 // header image flicker
 
 export const AirbnbListingDetailsScreen = () => {

@@ -9,15 +9,21 @@ import {
   Text,
   StyleSheet,
 } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useDerivedValue,
+  withDelay,
+  withTiming,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SharedElement } from "react-navigation-shared-element";
+import { useIsFocused } from "@react-navigation/core";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Spacing, useRouteNavigation } from "../../utils";
 
 export const AirbnbListingsScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<ListingType[]>([]);
-  const { navigate } = useRouteNavigation();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -39,92 +45,9 @@ export const AirbnbListingsScreen: React.FC = () => {
     fetchData();
   }, []);
 
-  const renderItem = useCallback(
-    ({ item }: { item: ListingType }) => {
-      return (
-        <Pressable
-          style={{ paddingVertical: Spacing.l }}
-          onPress={() => navigate("Airbnb Details", { listing: item })}
-        >
-          <View>
-            <SharedElement id={`${item.id}.photo`}>
-              <Image
-                source={{ uri: item.download_url }}
-                style={{
-                  width: IMG_WIDTH,
-                  height: IMG_HEIGHT,
-                  borderRadius: 10,
-                }}
-                resizeMode="cover"
-              />
-            </SharedElement>
-
-            <SharedElement
-              id={`${item.id}.icon`}
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                top: 0,
-              }}
-            >
-              <View style={{ alignItems: "flex-end" }}>
-                <Ionicons
-                  name="ios-heart-outline"
-                  size={25}
-                  color={Colors.IconOnPrimary}
-                  style={{ marginRight: Spacing.m, marginTop: Spacing.m }}
-                />
-              </View>
-            </SharedElement>
-          </View>
-
-          <View>
-            {/* Dummy content container background */}
-            <SharedElement
-              id={`${item.id}.background`}
-              style={{ ...StyleSheet.absoluteFillObject }}
-            >
-              <View
-                style={{ flex: 1, backgroundColor: Colors.SurfaceBackground }}
-              />
-            </SharedElement>
-
-            {/* Actual content container */}
-            <SharedElement id={`${item.id}.content`}>
-              <View>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginVertical: Spacing.m,
-                  }}
-                >
-                  <Text style={{ marginRight: Spacing.s }}>⭐️ 4.75</Text>
-                  <Text style={{ color: Colors.TextSubdued }}>(180)</Text>
-                </View>
-                <View>
-                  <Text
-                    style={{
-                      fontSize: 18,
-                      fontWeight: "400",
-                      marginBottom: Spacing.s,
-                    }}
-                  >
-                    Entire rental unit | Whistler
-                  </Text>
-                  <Text style={{ fontSize: 18, fontWeight: "400" }}>
-                    AG314 Queen Boho Studio
-                  </Text>
-                </View>
-              </View>
-            </SharedElement>
-          </View>
-        </Pressable>
-      );
-    },
-    [navigate]
-  );
+  const renderItem = useCallback(({ item }: { item: ListingType }) => {
+    return <Listing listing={item} />;
+  }, []);
 
   return (
     <>
@@ -148,6 +71,110 @@ export const AirbnbListingsScreen: React.FC = () => {
   );
 };
 
+const Listing = ({ listing }: { listing: ListingType }) => {
+  const { navigate } = useRouteNavigation();
+  const isFocused = useIsFocused();
+  const [pressed, setPressed] = useState(false);
+
+  const opacity = useDerivedValue(() => {
+    if (isFocused && pressed) {
+      return 1;
+    } else if (pressed) {
+      return withDelay(300, withTiming(0));
+    }
+  }, [isFocused, pressed]);
+
+  const aStyle = useAnimatedStyle(() => {
+    return { opacity: opacity.value };
+  });
+
+  return (
+    <AnimatedPressable
+      style={[{ paddingVertical: Spacing.l }, aStyle]}
+      onPress={() => {
+        setPressed(true);
+        navigate("Airbnb Details", { listing });
+      }}
+    >
+      <View>
+        <SharedElement id={`${listing.id}.photo`}>
+          <Image
+            source={{ uri: listing.download_url }}
+            style={{
+              width: IMG_WIDTH,
+              height: IMG_HEIGHT,
+              borderRadius: 10,
+            }}
+            resizeMode="cover"
+          />
+        </SharedElement>
+
+        <SharedElement
+          id={`${listing.id}.icon`}
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: 0,
+          }}
+        >
+          <View style={{ alignItems: "flex-end" }}>
+            <Ionicons
+              name="ios-heart-outline"
+              size={25}
+              color={Colors.IconOnPrimary}
+              style={{ marginRight: Spacing.m, marginTop: Spacing.m }}
+            />
+          </View>
+        </SharedElement>
+      </View>
+
+      <View>
+        {/* Dummy content container background */}
+        <SharedElement
+          id={`${listing.id}.background`}
+          style={{ ...StyleSheet.absoluteFillObject }}
+        >
+          <View
+            style={{ flex: 1, backgroundColor: Colors.SurfaceBackground }}
+          />
+        </SharedElement>
+
+        {/* Actual content container */}
+        <SharedElement id={`${listing.id}.content`}>
+          <View>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginVertical: Spacing.m,
+              }}
+            >
+              <Text style={{ marginRight: Spacing.s }}>⭐️ 4.75</Text>
+              <Text style={{ color: Colors.TextSubdued }}>(180)</Text>
+            </View>
+            <View>
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: "400",
+                  marginBottom: Spacing.s,
+                }}
+              >
+                Entire rental unit | Whistler
+              </Text>
+              <Text style={{ fontSize: 18, fontWeight: "400" }}>
+                AG314 Queen Boho Studio
+              </Text>
+            </View>
+          </View>
+        </SharedElement>
+      </View>
+    </AnimatedPressable>
+  );
+};
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const IMG_WIDTH = Dimensions.get("window").width - 2 * Spacing.defaultMargin;
 const IMG_HEIGHT = (IMG_WIDTH * 9) / 16;
 
