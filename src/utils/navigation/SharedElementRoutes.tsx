@@ -1,8 +1,7 @@
 import React from "react";
-import { TransitionPresets } from "@react-navigation/stack";
 import { createSharedElementStackNavigator } from "react-navigation-shared-element";
 import { Screen, StackRouteParamList } from "./Routes";
-import { BlurView } from "expo-blur";
+
 import {
   AirbnbListingsScreen,
   AirbnbListingDetailsScreen,
@@ -26,7 +25,6 @@ export const SharedElementRoutes = (Stack: Stack) => {
         name="Airbnb Details"
         component={AirbnbListingDetailsScreen}
         options={{
-          //   ...TransitionPresets.ModalSlideFromBottomIOS,
           headerShown: false,
           transitionSpec: {
             open: { animation: "timing", config: { duration: 300 } },

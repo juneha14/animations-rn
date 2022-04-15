@@ -9,6 +9,8 @@ import {
 } from "react-native";
 import Animated, {
   Extrapolate,
+  FadeIn,
+  FadeOut,
   interpolate,
   runOnJS,
   useAnimatedScrollHandler,
@@ -123,10 +125,15 @@ export const AirbnbListingDetailsScreen = () => {
         >
           <View style={{ zIndex: 1 }}>
             <LocationAndReview id={`${listing.id}.content`} />
-            <Specifications />
-            <FeaturedAmenities />
-            <Description />
-            <Offerings />
+            <Animated.View
+              entering={FadeIn.delay(300).duration(300)}
+              exiting={FadeOut.duration(300)}
+            >
+              <Specifications />
+              <FeaturedAmenities />
+              <Description />
+              <Offerings />
+            </Animated.View>
           </View>
 
           <SharedElement
