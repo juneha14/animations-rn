@@ -19,6 +19,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { SharedElement } from "react-navigation-shared-element";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import {
   Colors,
@@ -28,7 +29,6 @@ import {
   useRouteParams,
 } from "../../utils";
 
-// navigation header bar background color animate when scrolling
 // header image flicker
 
 export const AirbnbListingDetailsScreen = () => {
@@ -96,19 +96,10 @@ export const AirbnbListingDetailsScreen = () => {
         ]}
       >
         {/* Header */}
-        <SharedElement
-          id={`${listing.id}.icon`}
-          style={{
-            position: "absolute",
-            top: 50,
-            left: 0,
-            right: 0,
-            zIndex: 1,
-          }}
-        >
-          <NavigationButtons />
-        </SharedElement>
-
+        <NavigationButtons
+          sharedElementId={`${listing.id}.icon`}
+          scrollY={scrollY}
+        />
         <HeaderImage
           sharedElementId={`${listing.id}.photo`}
           uri={listing.download_url}
@@ -476,72 +467,120 @@ const Offerings = () => {
   );
 };
 
-const NavigationButtons = () => {
+const NavigationButtons = ({
+  sharedElementId,
+  scrollY,
+}: {
+  sharedElementId: string;
+  scrollY: Animated.SharedValue<number>;
+}) => {
   const { pop } = useRouteNavigation();
+  const { top } = useSafeAreaInsets();
+
+  const navHeaderOverlayAStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolate(
+        scrollY.value,
+        [0, IMG_HEIGHT - (top + 100), IMG_HEIGHT - (top + 60)],
+        [0, 0.2, 1],
+        Extrapolate.CLAMP
+      ),
+    };
+  });
 
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        paddingHorizontal: Spacing.defaultMargin,
-      }}
-    >
-      <Pressable
+    <>
+      <Animated.View
+        style={[
+          {
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: top + 50,
+            backgroundColor: Colors.SurfaceBackground,
+            zIndex: 1,
+          },
+          navHeaderOverlayAStyle,
+        ]}
+      />
+      <SharedElement
+        id={sharedElementId}
         style={{
-          width: 30,
-          height: 30,
-          borderRadius: 15,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: Colors.SurfaceBackground,
+          position: "absolute",
+          left: 0,
+          right: 0,
+          top: 0,
+          height: top + 50,
+          zIndex: 1,
         }}
-        onPress={() => pop()}
       >
-        <Ionicons
-          name="ios-close-outline"
-          size={25}
-          color={Colors.IconNeutral}
-        />
-      </Pressable>
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
         <View
           style={{
-            width: 30,
-            height: 30,
-            borderRadius: 15,
-            justifyContent: "center",
-            alignItems: "center",
-            marginRight: Spacing.m,
-            backgroundColor: Colors.SurfaceBackground,
+            flex: 1,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+            paddingBottom: Spacing.m,
+            paddingHorizontal: Spacing.defaultMargin,
           }}
         >
-          <Ionicons
-            name="ios-share-outline"
-            size={20}
-            color={Colors.IconNeutral}
-            style={{ marginLeft: 2 }}
-          />
+          <Pressable
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 15,
+              justifyContent: "center",
+              alignItems: "center",
+              backgroundColor: Colors.SurfaceBackground,
+            }}
+            onPress={() => pop()}
+          >
+            <Ionicons
+              name="ios-close-outline"
+              size={25}
+              color={Colors.IconNeutral}
+            />
+          </Pressable>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 15,
+                justifyContent: "center",
+                alignItems: "center",
+                marginRight: Spacing.m,
+                backgroundColor: Colors.SurfaceBackground,
+              }}
+            >
+              <Ionicons
+                name="ios-share-outline"
+                size={20}
+                color={Colors.IconNeutral}
+                style={{ marginLeft: 2 }}
+              />
+            </View>
+            <View
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 15,
+                justifyContent: "center",
+                alignItems: "center",
+                backgroundColor: Colors.SurfaceBackground,
+              }}
+            >
+              <Ionicons
+                name="ios-heart-outline"
+                size={20}
+                color={Colors.IconNeutral}
+              />
+            </View>
+          </View>
         </View>
-        <View
-          style={{
-            width: 30,
-            height: 30,
-            borderRadius: 15,
-            justifyContent: "center",
-            alignItems: "center",
-            backgroundColor: Colors.SurfaceBackground,
-          }}
-        >
-          <Ionicons
-            name="ios-heart-outline"
-            size={20}
-            color={Colors.IconNeutral}
-          />
-        </View>
-      </View>
-    </View>
+      </SharedElement>
+    </>
   );
 };
 
