@@ -15,6 +15,7 @@ export type StackRouteParamList = {
   "Apple Weather": undefined;
   "Bottom Sheet": undefined;
   "Card Wallet": undefined;
+  Counter: undefined;
   "Drag to Sort List": undefined;
   "Floating Action Button": undefined;
   "Instagram Bookmark": undefined;
