@@ -15,6 +15,7 @@ import AppleWeather from "../../StickySectionHeader";
 import CardWallet from "../../CardWallet";
 import ProgressButtons from "../../ProgressButtons";
 import Toast from "../../Toast";
+import Counter from "../../Counter";
 import { InterpolateColors } from "../../Fundamentals/Reanimated/InterpolateColors";
 import { InterpolateScrollView } from "../../Fundamentals/Reanimated/InterpolateScrollView";
 
@@ -28,6 +29,7 @@ export const ANIMATIONS: Screen[] = [
   "Apple Weather",
   "Bottom Sheet",
   "Card Wallet",
+  "Counter",
   "Drag to Sort List",
   "Floating Action Button",
   "Instagram Bookmark",
@@ -52,6 +54,7 @@ export const AnimationRoutes = (Stack: Stack) => {
       />
       <Stack.Screen name="Bottom Sheet" component={BottomSheet} />
       <Stack.Screen name="Card Wallet" component={CardWallet} />
+      <Stack.Screen name="Counter" component={Counter} />
       <Stack.Screen name="Drag to Sort List" component={DragToSortList} />
       <Stack.Screen
         name="Floating Action Button"
