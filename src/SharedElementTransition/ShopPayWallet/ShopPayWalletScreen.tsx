@@ -1,17 +1,32 @@
 import React from "react";
-import { ScrollView, Text, View } from "react-native";
+import {
+  Pressable,
+  ScrollView,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { Colors, Spacing } from "../../utils";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Card, CardBrand, CARDS } from "./PayCard";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 
 export const ShopPayWalletScreen = () => {
+  const { top } = useSafeAreaInsets();
+
+  return <CardDetailSheet />;
+
   return (
     <ScrollView
-      style={{ flex: 1 }}
+      style={{
+        paddingTop: top,
+        backgroundColor: Colors.SurfaceBackground,
+      }}
       contentContainerStyle={{
         flexGrow: 1,
         alignItems: "center",
         paddingVertical: Spacing.l,
-        backgroundColor: Colors.SurfaceBackground,
       }}
     >
       {CARDS.map((card) => {
@@ -21,127 +36,134 @@ export const ShopPayWalletScreen = () => {
   );
 };
 
-const Card = ({ brand }: { brand: CardBrand }) => {
+const CardDetailSheet = () => {
+  const { height } = useWindowDimensions();
+  const { top, bottom } = useSafeAreaInsets();
+
+  const containerAStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        {
+          translateY: 0,
+        },
+      ],
+    };
+  });
+
   return (
     <View
       style={{
-        width: 310,
-        height: 180,
-        padding: Spacing.l,
-        marginBottom: Spacing.l,
-        borderRadius: 10,
-        backgroundColor: ColorForCardBrand[brand],
+        flex: 1,
+        paddingTop: top,
+        paddingBottom: bottom,
+        paddingHorizontal: Spacing.l,
+        backgroundColor: Colors.SurfaceBackground,
       }}
     >
-      {/* Chip and brand icon */}
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
+      <Pressable
+        style={{ marginLeft: -Spacing.m }}
+        onPress={() =>
+          console.log(
+            "[Debugging] ==== File: ShopPayWalletScreen.tsx, Line: 63 ===="
+          )
+        }
       >
         <Ionicons
-          name="hardware-chip-outline"
-          size={40}
-          color={Colors.IconOnPrimary}
+          name="ios-chevron-back"
+          size={30}
+          color={Colors.IconNeutral}
         />
-        <Text
-          style={{
-            color: Colors.TextOnSurfacePrimary,
-            fontWeight: "700",
-            fontSize: 18,
-          }}
-        >
-          {NameForCardBrand[brand]}
-        </Text>
-      </View>
+      </Pressable>
 
-      {/* Card details */}
-      <View style={{ flex: 1, justifyContent: "space-evenly" }}>
-        {/* Obfuscated number */}
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Text
-            style={{
-              color: Colors.TextOnSurfacePrimary,
-              fontWeight: "700",
-              fontSize: 30,
-            }}
-          >
-            •••• •••• ••••
-          </Text>
-          <Text
-            style={{
-              color: Colors.TextOnSurfacePrimary,
-              fontWeight: "500",
-              fontSize: 16,
-              marginLeft: 5,
-            }}
-            adjustsFontSizeToFit
-          >
-            4242
-          </Text>
-        </View>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, marginTop: Spacing.l }}>
+        <Animated.View style={[{ flex: 1 }, containerAStyle]}>
+          <View style={{ justifyContent: "center", alignItems: "center" }}>
+            <Card brand="visa" />
+          </View>
 
-        {/* Expiry and name */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <CardDetailContent label="Expires" value="11/2024" />
-          <CardDetailContent label="Cardholder name" value="June Ha" />
-        </View>
-      </View>
+          {/* Card details */}
+          <View style={{ marginTop: Spacing.l }}>
+            <Text
+              style={{
+                fontWeight: "700",
+                fontSize: 25,
+                marginBottom: Spacing.m,
+              }}
+            >
+              Card details
+            </Text>
+            <CardInfo label="Expiry date" value="11/24" showDivider />
+            <CardInfo
+              label="Billing address"
+              value={"5775 Toronto Rd\nVancouver, BC\nV6T1X4\nCanada"}
+            />
+          </View>
+
+          {/* Footer buttons */}
+          <View style={{ flex: 1, justifyContent: "flex-end" }}>
+            <Pressable
+              style={{
+                justifyContent: "center",
+                alignItems: "center",
+                paddingVertical: Spacing.m,
+                borderRadius: 20,
+                borderWidth: 2,
+                borderColor: Colors.ActionCritical,
+              }}
+            >
+              <Text
+                style={{
+                  color: Colors.TextCritical,
+                  fontWeight: "500",
+                  fontSize: 16,
+                }}
+              >
+                Remove card
+              </Text>
+            </Pressable>
+          </View>
+        </Animated.View>
+      </ScrollView>
     </View>
   );
 };
 
-const CardDetailContent = ({
+const CardInfo = ({
   label,
   value,
+  showDivider,
 }: {
   label: string;
   value: string;
+  showDivider?: boolean;
 }) => {
   return (
-    <View>
-      <Text
+    <>
+      <View
         style={{
-          color: Colors.TextOnSurfacePrimary,
-          opacity: 0.8,
-          textTransform: "uppercase",
-          fontSize: 12,
+          flexDirection: "row",
+          alignItems: "center",
+          paddingVertical: Spacing.l,
         }}
       >
-        {label}
-      </Text>
-      <Text
-        style={{
-          color: Colors.TextOnSurfacePrimary,
-          fontWeight: "600",
-          fontSize: 18,
-        }}
-      >
-        {value}
-      </Text>
-    </View>
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{
+              textTransform: "uppercase",
+              fontWeight: "bold",
+              fontSize: 12,
+            }}
+          >
+            {label}
+          </Text>
+        </View>
+        <View style={{ flex: 2, marginLeft: Spacing.m }}>
+          <Text>{value}</Text>
+        </View>
+      </View>
+      {showDivider ? (
+        <View style={{ height: 1, backgroundColor: Colors.BorderSubdued }} />
+      ) : null}
+    </>
   );
-};
-
-const CARDS = ["visa", "mastercard", "amex"];
-type CardBrand = typeof CARDS[number];
-
-const ColorForCardBrand: Record<CardBrand, string> = {
-  visa: "darksalmon",
-  mastercard: "pink",
-  amex: "burlywood",
-};
-
-const NameForCardBrand: Record<CardBrand, string> = {
-  visa: "VISA",
-  mastercard: "Mastercard",
-  amex: "AMEX",
 };

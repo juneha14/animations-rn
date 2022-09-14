@@ -65,7 +65,11 @@ export const SharedElementRoutes = (Stack: Stack) => {
           ];
         }}
       />
-      <Stack.Screen name="Shop Pay Wallet" component={ShopPayWalletScreen} />
+      <Stack.Screen
+        name="Shop Pay Wallet"
+        component={ShopPayWalletScreen}
+        options={{ headerShown: false }}
+      />
     </>
   );
 };
