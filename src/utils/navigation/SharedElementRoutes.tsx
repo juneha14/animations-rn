@@ -6,12 +6,13 @@ import {
   AirbnbListingsScreen,
   AirbnbListingDetailsScreen,
 } from "../../SharedElementTransition/Airbnb";
+import { ShopPayWalletScreen } from "../../SharedElementTransition/ShopPayWallet";
 
 const stackWrapper = () =>
   createSharedElementStackNavigator<StackRouteParamList>();
 type Stack = ReturnType<typeof stackWrapper>;
 
-export const TRANSITIONS: Screen[] = ["Airbnb"];
+export const TRANSITIONS: Screen[] = ["Airbnb", "Shop Pay Wallet"];
 
 export const SharedElementRoutes = (Stack: Stack) => {
   return (
@@ -64,6 +65,7 @@ export const SharedElementRoutes = (Stack: Stack) => {
           ];
         }}
       />
+      <Stack.Screen name="Shop Pay Wallet" component={ShopPayWalletScreen} />
     </>
   );
 };

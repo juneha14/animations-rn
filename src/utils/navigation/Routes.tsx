@@ -30,6 +30,7 @@ export type StackRouteParamList = {
   // Shared element transitions:
   Airbnb: undefined;
   "Airbnb Details": { listing: ListingType };
+  "Shop Pay Wallet": undefined;
 };
 
 export type Screen = keyof StackRouteParamList;
