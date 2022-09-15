@@ -1,11 +1,17 @@
 import React from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Colors, Spacing } from "../../utils";
 import { Ionicons } from "@expo/vector-icons";
 
-export const Card = ({ brand }: { brand: CardBrand }) => {
+export const PayCard = ({
+  brand,
+  onPress,
+}: {
+  brand: CardBrand;
+  onPress?: () => void;
+}) => {
   return (
-    <View
+    <Pressable
       style={{
         width: 310,
         height: 180,
@@ -14,6 +20,7 @@ export const Card = ({ brand }: { brand: CardBrand }) => {
         borderRadius: 10,
         backgroundColor: ColorForCardBrand[brand],
       }}
+      onPress={onPress}
     >
       {/* Chip and brand icon */}
       <View
@@ -77,7 +84,7 @@ export const Card = ({ brand }: { brand: CardBrand }) => {
           <CardDetailContent label="Cardholder name" value="June Ha" />
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 };
 
