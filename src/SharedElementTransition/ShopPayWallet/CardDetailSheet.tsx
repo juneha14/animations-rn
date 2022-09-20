@@ -77,14 +77,14 @@ export const CardDetailSheet = forwardRef<
           paddingBottom: bottom,
           paddingHorizontal: Spacing.l,
           backgroundColor: Colors.SurfaceBackground,
-          zIndex: 2,
+          zIndex: 1,
         },
         containerAStyle,
       ]}
     >
       {/* Left back navigation button */}
       <Pressable
-        style={{ marginLeft: -Spacing.m }}
+        style={{ marginLeft: -Spacing.m, height: 30 }}
         onPress={() => handleSheet(false)}
       >
         <Ionicons

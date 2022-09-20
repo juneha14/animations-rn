@@ -1,26 +1,38 @@
-import React from "react";
-import { Pressable, Text, View } from "react-native";
+import React, { useRef } from "react";
+import { Pressable, StyleProp, Text, View, ViewStyle } from "react-native";
 import { Colors, Spacing } from "../../utils";
 import { Ionicons } from "@expo/vector-icons";
 
 export const PayCard = ({
   brand,
   onPress,
+  style,
 }: {
   brand: CardBrand;
-  onPress?: () => void;
+  onPress?: (y: number) => void;
+  style?: StyleProp<ViewStyle>;
 }) => {
+  const posY = useRef(0);
+
   return (
     <Pressable
-      style={{
-        width: 310,
-        height: 180,
-        padding: Spacing.l,
-        marginBottom: Spacing.l,
-        borderRadius: 10,
-        backgroundColor: ColorForCardBrand[brand],
+      style={[
+        {
+          width: 310,
+          height: 180,
+          padding: Spacing.l,
+          borderRadius: 10,
+          backgroundColor: ColorForCardBrand[brand],
+        },
+        style,
+      ]}
+      onPress={() => {
+        onPress?.(posY.current);
       }}
-      onPress={onPress}
+      onLayout={(e) => {
+        const y = e.nativeEvent.layout.y;
+        posY.current = y;
+      }}
     >
       {/* Chip and brand icon */}
       <View
@@ -120,17 +132,19 @@ const CardDetailContent = ({
   );
 };
 
-export const CARDS = ["visa", "mastercard", "amex"];
+export const CARDS = ["visa", "mastercard", "amex", "jcb"] as const;
 export type CardBrand = typeof CARDS[number];
 
 const ColorForCardBrand: Record<CardBrand, string> = {
   visa: "darksalmon",
   mastercard: "pink",
   amex: "burlywood",
+  jcb: "darkkhaki",
 };
 
 const NameForCardBrand: Record<CardBrand, string> = {
   visa: "VISA",
   mastercard: "Mastercard",
   amex: "AMEX",
+  jcb: "JCB",
 };
